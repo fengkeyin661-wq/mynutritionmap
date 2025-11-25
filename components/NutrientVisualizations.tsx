@@ -40,12 +40,14 @@ interface MicroNutrientGridProps {
 
 export const MicroNutrientGrid: React.FC<MicroNutrientGridProps> = ({ items }) => (
   <div className="grid grid-cols-3 gap-2">
-    {items && Object.entries(items).map(([key, data]) => (
+    {items && Object.entries(items).map(([key, data]) => {
+      const typedData = data as { value: string; nrvPercent: number };
+      return (
       <div key={key} className="bg-slate-50 p-2 rounded-lg text-center border border-slate-100">
         <div className="text-[10px] text-slate-400 font-medium uppercase truncate">{key}</div>
-        <div className="text-xs font-bold text-slate-700">{data?.value || '-'}</div>
-        <div className="text-[10px] text-emerald-600">{data?.nrvPercent?.toFixed(0) || 0}%</div>
+        <div className="text-xs font-bold text-slate-700">{typedData?.value || '-'}</div>
+        <div className="text-[10px] text-emerald-600">{typedData?.nrvPercent?.toFixed(0) || 0}%</div>
       </div>
-    ))}
+    )})}
   </div>
 );

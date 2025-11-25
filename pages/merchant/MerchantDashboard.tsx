@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { usePlatform } from '../../context/PlatformContext';
-import { Plus, Package, Clock, CircleCheck, CircleX, ArrowLeft, Store } from 'lucide-react';
+import { Plus, Package, Clock, CheckCircle, XCircle, ArrowLeft, Store } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const MerchantDashboard: React.FC = () => {
@@ -74,9 +75,9 @@ const MerchantDashboard: React.FC = () => {
                  <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
                       <h3 className="font-bold text-slate-800 truncate">{p.name}</h3>
-                      {p.status === 'APPROVED' && <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded flex items-center gap-1"><CircleCheck size={10} /> 已上架</span>}
+                      {p.status === 'APPROVED' && <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded flex items-center gap-1"><CheckCircle size={10} /> 已上架</span>}
                       {p.status === 'PENDING' && <span className="text-[10px] bg-yellow-50 text-yellow-600 px-2 py-0.5 rounded flex items-center gap-1"><Clock size={10} /> 审核中</span>}
-                      {p.status === 'REJECTED' && <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded flex items-center gap-1"><CircleX size={10} /> 已驳回</span>}
+                      {p.status === 'REJECTED' && <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded flex items-center gap-1"><XCircle size={10} /> 已驳回</span>}
                     </div>
                     <p className="text-xs text-slate-400 mb-2">¥{p.price.toFixed(1)} | {p.calories} kcal</p>
                     <div className="flex gap-2">

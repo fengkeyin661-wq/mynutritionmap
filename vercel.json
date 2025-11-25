@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/qwen-api/:match*",
-      "destination": "https://dashscope.aliyuncs.com/compatible-mode/v1/:match*"
+      "destination": "https://dashscope.aliyuncs.com/api/v1/:match*"
     },
     {
       "source": "/(.*)",

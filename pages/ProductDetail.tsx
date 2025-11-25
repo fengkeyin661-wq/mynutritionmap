@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Flame, MapPin, Store, 
-  ShoppingCart, CircleAlert, ShoppingBag, Star, Info,
-  ChefHat, Activity, CirclePlus, Heart
+  ShoppingCart, AlertCircle, ShoppingBag, Star, Info,
+  ChefHat, Activity, PlusCircle, Heart
 } from 'lucide-react';
 import { ProductDetail } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
@@ -86,7 +87,7 @@ const getMockProductDetail = (id: string): ProductDetail => {
   };
 };
 
-const ProductDetailPage: React.FC = () => {
+const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addLog } = useDailyLog();
@@ -231,7 +232,7 @@ const ProductDetailPage: React.FC = () => {
         {activeTab === 'nutrition' && (
           <div className="space-y-6 animate-fade-in pb-8">
              <div className="bg-amber-50 text-amber-700 p-3 rounded-xl flex gap-2 text-xs items-start">
-               <CircleAlert size={16} className="shrink-0 mt-0.5" />
+               <AlertCircle size={16} className="shrink-0 mt-0.5" />
                <p>营养数据仅供参考，基于标准配方估算。实际数据可能因批次不同略有差异。NRV%参考中国成人每日推荐摄入量。</p>
             </div>
 
@@ -309,7 +310,7 @@ const ProductDetailPage: React.FC = () => {
                onClick={handleAddToLog}
                className="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
-               <CirclePlus size={18} /> 加入食谱
+               <PlusCircle size={18} /> 加入食谱
             </button>
             <button className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-200">
                立即购买
@@ -322,4 +323,4 @@ const ProductDetailPage: React.FC = () => {
   );
 };
 
-export default ProductDetailPage;
+export default ProductDetail;

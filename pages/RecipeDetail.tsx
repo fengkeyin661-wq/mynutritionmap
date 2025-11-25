@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Clock, Flame, Heart, MessageCircle, ThumbsDown, 
-  Bookmark, CirclePlus, CircleAlert, ChefHat, Activity 
+  Bookmark, PlusCircle, AlertCircle, ChefHat, Activity 
 } from 'lucide-react';
 import { RecipeDetail } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
@@ -10,7 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePlatform } from '../context/PlatformContext';
 import { NutrientBar, MicroNutrientGrid } from '../components/NutrientVisualizations';
 
-const RecipeDetailPage: React.FC = () => {
+const RecipeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addLog } = useDailyLog();
@@ -96,7 +97,7 @@ const RecipeDetailPage: React.FC = () => {
                 onClick={handleAddToLog}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full font-bold text-xs shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
               >
-                 <CirclePlus size={16} /> 加入食谱
+                 <PlusCircle size={16} /> 加入食谱
               </button>
            </div>
         </div>
@@ -169,7 +170,7 @@ const RecipeDetailPage: React.FC = () => {
         {activeTab === 'nutrition' && (
           <div className="space-y-6 animate-fade-in pb-8">
             <div className="bg-amber-50 text-amber-700 p-3 rounded-xl flex gap-2 text-xs items-start">
-               <CircleAlert size={16} className="shrink-0 mt-0.5" />
+               <AlertCircle size={16} className="shrink-0 mt-0.5" />
                <p>所有数据均为AI根据食材估算，仅供参考，不作为医疗建议。NRV%参考成人每日推荐摄入量。</p>
             </div>
 
@@ -234,4 +235,4 @@ const RecipeDetailPage: React.FC = () => {
   );
 };
 
-export default RecipeDetailPage;
+export default RecipeDetail;

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatform } from '../../context/PlatformContext';
@@ -84,9 +85,10 @@ const ProductEdit: React.FC = () => {
       showToast('提交成功！请等待管理员审核', 'success');
       navigate('/merchant/dashboard');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      showToast('分析失败，请重试', 'error');
+      const msg = error instanceof Error ? error.message : (error?.message || '分析失败，请重试');
+      showToast(msg, 'error');
     } finally {
       setIsAnalyzing(false);
     }

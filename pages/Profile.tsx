@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDailyLog } from '../context/DailyLogContext';
 import { 
   User, ChevronRight, LogOut, Heart, 
-  QrCode, Info, Camera, Pencil, X, Trash2,
-  Shield, FileText, Flame, CirclePlus
+  QrCode, Info, Camera, Edit2, X, Trash2,
+  Shield, FileText, Flame, PlusCircle
 } from 'lucide-react';
 import { useNavigate, Navigate } from 'react-router-dom';
 
@@ -60,7 +61,7 @@ const Profile: React.FC = () => {
         <div className="flex justify-between items-start relative z-10">
            <h1 className="text-2xl font-bold text-slate-800">我的</h1>
            <button onClick={() => navigate('/login')} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-emerald-600 transition-colors">
-              <Pencil size={18} />
+              <Edit2 size={18} />
            </button>
         </div>
 
@@ -262,7 +263,7 @@ const Profile: React.FC = () => {
                                onClick={() => handleAddToDailyLog(item)}
                                className="px-3 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-xs rounded-lg flex items-center gap-1 active:scale-95 transition-transform"
                              >
-                               <CirclePlus size={14} /> 加入食谱
+                               <PlusCircle size={14} /> 加入食谱
                              </button>
                              <button onClick={() => deleteFromFoodLibrary(item.id)} className="p-2 text-slate-300 hover:text-red-500 bg-slate-50 rounded-lg">
                                 <Trash2 size={16} />

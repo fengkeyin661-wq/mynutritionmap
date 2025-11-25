@@ -68,17 +68,19 @@ const Dashboard: React.FC = () => {
         Object.entries(d.vitamins).forEach(([key, data]) => {
            if (!agg.vitamins[key]) agg.vitamins[key] = { value: '0', nrvPercent: 0 };
            const current = parseValue(agg.vitamins[key].value);
-           const income = parseValue(data.value);
+           const vData = data as { value: string; nrvPercent: number };
+           const income = parseValue(vData.value);
            agg.vitamins[key].value = `${(current.val + income.val).toFixed(1).replace(/\.0$/, '')}${income.unit || current.unit}`;
-           agg.vitamins[key].nrvPercent += data.nrvPercent || 0;
+           agg.vitamins[key].nrvPercent += vData.nrvPercent || 0;
         });
 
         Object.entries(d.minerals).forEach(([key, data]) => {
            if (!agg.minerals[key]) agg.minerals[key] = { value: '0', nrvPercent: 0 };
            const current = parseValue(agg.minerals[key].value);
-           const income = parseValue(data.value);
+           const mData = data as { value: string; nrvPercent: number };
+           const income = parseValue(mData.value);
            agg.minerals[key].value = `${(current.val + income.val).toFixed(1).replace(/\.0$/, '')}${income.unit || current.unit}`;
-           agg.minerals[key].nrvPercent += data.nrvPercent || 0;
+           agg.minerals[key].nrvPercent += mData.nrvPercent || 0;
         });
       }
     });

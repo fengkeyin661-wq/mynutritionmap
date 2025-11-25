@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { UserRole, UserProfile, Gender, ActivityLevel, UserFoodItem } from '../types';
 import { useToast } from './ToastContext';

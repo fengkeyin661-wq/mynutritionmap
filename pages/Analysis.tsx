@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, CircleAlert, Loader2, Sparkles, Pencil, Check, Trash2, ArrowLeft, CirclePlus } from 'lucide-react';
+import { Camera, AlertCircle, Loader2, Sparkles, Edit2, Check, Trash2, ArrowLeft, PlusCircle } from 'lucide-react';
 import { identifyFoodFromImage, analyzeNutritionFromIngredients } from '../services/aiService';
 import { AnalysisStatus, FoodAnalysisResult, Ingredient } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
@@ -149,7 +149,7 @@ const Analysis: React.FC = () => {
 
       {status === AnalysisStatus.ERROR && (
         <div className="mt-6 p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-4 text-red-700 animate-fade-in-up">
-           <CircleAlert size={24} />
+           <AlertCircle size={24} />
            <div>
              <p className="font-bold text-sm">分析遇到了点小问题</p>
              <button onClick={() => { setImage(null); setStatus(AnalysisStatus.IDLE); }} className="mt-1 text-xs underline">重试</button>
@@ -162,7 +162,7 @@ const Analysis: React.FC = () => {
         <div className="mt-6 animate-fade-in-up bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50">
            <div className="flex justify-between items-center mb-6">
               <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                 <Pencil size={18} className="text-emerald-500" /> 确认食材
+                 <Edit2 size={18} className="text-emerald-500" /> 确认食材
               </h2>
            </div>
            
@@ -241,7 +241,7 @@ const Analysis: React.FC = () => {
              </div>
 
              <button onClick={handleAddToLog} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2">
-                <CirclePlus size={20} /> 加入食谱
+                <PlusCircle size={20} /> 加入食谱
              </button>
           </div>
 
