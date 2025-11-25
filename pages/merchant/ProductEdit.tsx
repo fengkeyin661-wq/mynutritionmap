@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatform } from '../../context/PlatformContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ProductDetail, DetailedNutrients, Ingredient } from '../../types';
-import { analyzeNutritionFromIngredients } from '../../services/geminiService';
+import { analyzeNutritionFromIngredients } from '../../services/aiService';
 import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles } from 'lucide-react';
 
 const ProductEdit: React.FC = () => {

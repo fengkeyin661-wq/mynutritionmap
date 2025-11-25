@@ -1,7 +1,6 @@
-
 import React, { useState, useRef } from 'react';
 import { Camera, AlertCircle, Loader2, Sparkles, Edit2, Check, Trash2, ArrowLeft, PlusCircle } from 'lucide-react';
-import { identifyFoodFromImage, analyzeNutritionFromIngredients } from '../services/geminiService';
+import { identifyFoodFromImage, analyzeNutritionFromIngredients } from '../services/aiService';
 import { AnalysisStatus, FoodAnalysisResult, Ingredient } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
@@ -27,7 +26,7 @@ const Analysis: React.FC = () => {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setImage(base64String);
-        startIdentification(base64String.split(',')[1]);
+        startIdentification(base64String); // Qwen supports full data URI
       };
       reader.readAsDataURL(file);
     }

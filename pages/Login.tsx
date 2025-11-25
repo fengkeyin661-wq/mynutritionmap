@@ -1,19 +1,18 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { UserProfile, Gender, ActivityLevel } from '../types';
 import { 
-  Camera, ChevronRight, ArrowLeft, Ruler, Weight, 
-  Calendar, Leaf, User, Lock, Mail, CheckCircle, Loader2
+  Camera, ChevronRight, ArrowLeft, CheckCircle, 
+  User, Lock, Mail, Loader2, Leaf
 } from 'lucide-react';
 
 type ViewState = 'LANDING' | 'LOGIN' | 'REGISTER';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, register, isLoading: isAuthLoading } = useAuth(); // Use real methods
+  const { login, register } = useAuth();
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,7 +65,6 @@ const Login: React.FC = () => {
   const handleRegisterFinish = async () => {
     if (!email || !password) {
       showToast('请填写登录邮箱和密码', 'error');
-      // Go back to step 1 logic or add a step 0 for account
       return; 
     }
     if (!nickname.trim()) {
@@ -119,7 +117,7 @@ const Login: React.FC = () => {
   // 1. Landing View
   if (view === 'LANDING') {
     return (
-      <div className="fixed inset-0 z-[100] bg-slate-50 flex flex-col items-center justify-end overflow-hidden">
+      <div className="fixed inset-0 z-[200] h-[100dvh] bg-slate-50 flex flex-col items-center justify-end overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-[60vh] bg-emerald-600 rounded-b-[3rem] shadow-xl z-0 flex items-center justify-center overflow-hidden">
            <div className="absolute w-96 h-96 bg-white/10 rounded-full blur-3xl -top-20 -left-20"></div>
            <div className="absolute w-80 h-80 bg-emerald-400/20 rounded-full blur-2xl bottom-0 right-0"></div>
@@ -152,7 +150,7 @@ const Login: React.FC = () => {
   // 2. Login View
   if (view === 'LOGIN') {
     return (
-      <div className="fixed inset-0 z-[100] bg-white flex flex-col">
+      <div className="fixed inset-0 z-[200] h-[100dvh] bg-white flex flex-col">
         <div className="p-6">
           <button onClick={() => setView('LANDING')} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-600 mb-8 hover:bg-slate-100">
             <ArrowLeft size={20} />
@@ -195,8 +193,8 @@ const Login: React.FC = () => {
 
   // 3. Register Wizard
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-50 flex flex-col">
-      <div className="bg-white p-4 pt-6 sticky top-0 z-10 shadow-sm">
+    <div className="fixed inset-0 z-[200] h-[100dvh] bg-slate-50 flex flex-col">
+      <div className="bg-white p-4 pt-6 sticky top-0 z-10 shadow-sm shrink-0">
          <div className="flex items-center justify-between mb-4">
             <button onClick={prevStep} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-600 hover:bg-slate-100"><ArrowLeft size={20} /></button>
             <div className="text-sm font-bold text-slate-800">步骤 {regStep} / {totalSteps}</div>
@@ -282,7 +280,8 @@ const Login: React.FC = () => {
         )}
       </div>
 
-      <div className="p-4 bg-white border-t border-slate-50 z-20 pb-safe">
+      {/* Footer Button - Fixed outside scroll area */}
+      <div className="p-4 bg-white border-t border-slate-50 z-20 pb-safe shrink-0">
          <button onClick={nextStep} disabled={isSubmitting} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2">
             {isSubmitting ? <Loader2 className="animate-spin" /> : (regStep === totalSteps ? '完成注册' : '下一步')}
          </button>

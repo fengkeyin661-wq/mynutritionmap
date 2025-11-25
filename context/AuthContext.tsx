@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { UserRole, UserProfile, Gender, ActivityLevel, UserFoodItem } from '../types';
 import { useToast } from './ToastContext';
@@ -187,7 +186,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, pass: string): Promise<boolean> => {
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) {
-      showToast(error.message, 'error');
+      showToast(error.message || '登录失败', 'error');
       return false;
     }
     return true;
@@ -200,7 +199,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const { data, error } = await supabase.auth.signUp({ email, password: pass });
     if (error) {
-      showToast(error.message, 'error');
+      showToast(error.message || '注册失败', 'error');
       return false;
     }
 
