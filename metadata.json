@@ -1,0 +1,9 @@
+{
+  "name": "MYNutriMap",
+  "description": "一款集成了AI食物分析、商家发现和社区食谱的智能营养管理小程序。",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
