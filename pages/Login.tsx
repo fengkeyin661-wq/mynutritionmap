@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -90,7 +91,8 @@ const Login: React.FC = () => {
 
     if (success) {
       showToast('注册成功！欢迎加入', 'success');
-      navigate('/');
+      // 跳转到个人中心
+      navigate('/profile');
     }
   };
 

@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { FoodAnalysisResult, IdentifiedFood, Ingredient } from "../types";
 
@@ -20,6 +21,15 @@ const parseBase64 = (dataUrl: string) => {
  * 第一步：识别食物图片
  */
 export const identifyFoodFromImage = async (base64Image: string): Promise<IdentifiedFood> => {
+  // Check for missing API Key to prevent crash
+  if (!process.env.API_KEY) {
+    console.warn("Missing API_KEY, using mock fallback.");
+    return {
+      foodName: "识别功能需配置API Key",
+      ingredients: [{ name: "示例食材", amount: "100g" }]
+    };
+  }
+
   try {
     const { mimeType, data } = parseBase64(base64Image);
 
@@ -78,6 +88,12 @@ export const identifyFoodFromImage = async (base64Image: string): Promise<Identi
  * 第二步：详细营养分析
  */
 export const analyzeNutritionFromIngredients = async (foodName: string, ingredients: Ingredient[]): Promise<FoodAnalysisResult> => {
+  // Check for missing API Key
+  if (!process.env.API_KEY) {
+    console.warn("Missing API_KEY, using mock fallback.");
+    return getFallbackAnalysisResult(foodName);
+  }
+
   try {
     const ingredientsStr = ingredients.map(i => `${i.name} ${i.amount}`).join(', ');
     const prompt = `
