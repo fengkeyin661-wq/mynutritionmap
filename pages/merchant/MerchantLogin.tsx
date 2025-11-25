@@ -110,8 +110,11 @@ const MerchantLogin: React.FC = () => {
 
     } catch (e: any) {
       console.error(e);
-      // Safely extract error message
-      const msg = e instanceof Error ? e.message : (e?.message || '注册失败，请重试');
+      let msg = '注册失败，请重试';
+      if (typeof e === 'string') msg = e;
+      else if (e instanceof Error) msg = e.message;
+      else if (e?.message) msg = e.message;
+      
       showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);

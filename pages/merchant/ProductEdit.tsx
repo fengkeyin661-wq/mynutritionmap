@@ -87,7 +87,11 @@ const ProductEdit: React.FC = () => {
 
     } catch (error: any) {
       console.error(error);
-      const msg = error instanceof Error ? error.message : (error?.message || '分析失败，请重试');
+      let msg = '分析失败，请重试';
+      if (typeof error === 'string') msg = error;
+      else if (error instanceof Error) msg = error.message;
+      else if (error?.message) msg = error.message;
+      
       showToast(msg, 'error');
     } finally {
       setIsAnalyzing(false);
