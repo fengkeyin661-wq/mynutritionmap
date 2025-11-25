@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Product, ProductStatus, DetailedNutrients, ProductDetail, RecipeDetail } from '../types';
 import { supabase } from '../lib/supabase';
@@ -43,69 +44,73 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const fetchData = async () => {
-    // 1. Fetch Products & Merchants JOIN
-    const { data: prodData, error: prodError } = await supabase
-      .from('products')
-      .select(`
-        *,
-        merchants ( name, address, rating, location_lat, location_lng )
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      // 1. Fetch Products & Merchants JOIN
+      const { data: prodData, error: prodError } = await supabase
+        .from('products')
+        .select(`
+          *,
+          merchants ( name, address, rating, location_lat, location_lng )
+        `)
+        .order('created_at', { ascending: false });
 
-    if (!prodError && prodData) {
-      const mappedProducts: ProductDetail[] = prodData.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        price: p.price,
-        imageUrl: p.image_url,
-        calories: p.calories,
-        protein: p.protein,
-        carbs: p.carbs,
-        fat: p.fat,
-        tags: p.tags || [],
-        isPromo: p.is_promo,
-        merchantId: p.merchant_id,
-        merchantName: p.merchants?.name || '未知商家',
-        distance: "1.2km", // 需结合地理位置计算
-        status: p.status as ProductStatus,
-        merchantAddress: p.merchants?.address,
-        merchantRating: p.merchants?.rating || 5.0,
-        salesCount: p.sales_count || 0,
-        description: p.description,
-        ingredients: p.ingredients || [],
-        detailedNutrients: p.detailed_nutrients
-      }));
-      setProducts(mappedProducts);
-    }
+      if (!prodError && prodData) {
+        const mappedProducts: ProductDetail[] = prodData.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          imageUrl: p.image_url,
+          calories: p.calories,
+          protein: p.protein,
+          carbs: p.carbs,
+          fat: p.fat,
+          tags: p.tags || [],
+          isPromo: p.is_promo,
+          merchantId: p.merchant_id,
+          merchantName: p.merchants?.name || '未知商家',
+          distance: "1.2km", // 需结合地理位置计算
+          status: p.status as ProductStatus,
+          merchantAddress: p.merchants?.address,
+          merchantRating: p.merchants?.rating || 5.0,
+          salesCount: p.sales_count || 0,
+          description: p.description,
+          ingredients: p.ingredients || [],
+          detailedNutrients: p.detailed_nutrients
+        }));
+        setProducts(mappedProducts);
+      }
 
-    // 2. Fetch Recipes & Authors JOIN
-    const { data: recipeData, error: recipeError } = await supabase
-      .from('recipes')
-      .select(`
-        *,
-        profiles ( nickname )
-      `)
-      .order('created_at', { ascending: false });
+      // 2. Fetch Recipes & Authors JOIN
+      const { data: recipeData, error: recipeError } = await supabase
+        .from('recipes')
+        .select(`
+          *,
+          profiles ( nickname )
+        `)
+        .order('created_at', { ascending: false });
 
-    if (!recipeError && recipeData) {
-      const mappedRecipes: (RecipeDetail & { category: string })[] = recipeData.map((r: any) => ({
-        id: r.id,
-        title: r.title,
-        author: r.profiles?.nickname || 'NutriMap用户',
-        likes: r.likes_count,
-        imageUrl: r.image_url,
-        calories: r.calories,
-        protein: r.detailed_nutrients?.protein?.value || 0,
-        carbs: r.detailed_nutrients?.carbs?.total?.value || 0,
-        fat: r.detailed_nutrients?.fat?.total?.value || 0,
-        prepTime: r.prep_time,
-        category: r.category || '全部',
-        description: r.description,
-        ingredients: r.ingredients || [],
-        steps: r.steps || [],
-        detailedNutrients: r.detailed_nutrients
-      }));
-      setRecipes(mappedRecipes);
+      if (!recipeError && recipeData) {
+        const mappedRecipes: (RecipeDetail & { category: string })[] = recipeData.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          author: r.profiles?.nickname || 'NutriMap用户',
+          likes: r.likes_count,
+          imageUrl: r.image_url,
+          calories: r.calories,
+          protein: r.detailed_nutrients?.protein?.value || 0,
+          carbs: r.detailed_nutrients?.carbs?.total?.value || 0,
+          fat: r.detailed_nutrients?.fat?.total?.value || 0,
+          prepTime: r.prep_time,
+          category: r.category || '全部',
+          description: r.description,
+          ingredients: r.ingredients || [],
+          steps: r.steps || [],
+          detailedNutrients: r.detailed_nutrients
+        }));
+        setRecipes(mappedRecipes);
+      }
+    } catch (e) {
+      console.warn("Platform data fetch failed", e);
     }
   };
 

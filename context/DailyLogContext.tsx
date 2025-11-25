@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { MealLogItem, DailySummary } from '../types';
 import { useToast } from './ToastContext';
@@ -37,40 +38,42 @@ export const DailyLogProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [userProfile]); // Reload logs when user changes
 
   const fetchLogs = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      setLogs([]);
-      return;
-    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setLogs([]);
+        return;
+      }
 
-    // Load logs for TODAY (Server timestamp check would be better, but simple filter here)
-    // For simplicity, we load all and filter by date in frontend or DB query
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const todayISO = today.toISOString();
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const todayISO = today.toISOString();
 
-    const { data, error } = await supabase
-      .from('food_logs')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .gte('logged_at', todayISO)
-      .order('logged_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('food_logs')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .gte('logged_at', todayISO)
+        .order('logged_at', { ascending: false });
 
-    if (data && !error) {
-      const mapped: MealLogItem[] = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        imageUrl: item.image_url,
-        calories: item.calories,
-        protein: item.protein,
-        carbs: item.carbs,
-        fat: item.fat,
-        sourceType: item.source_type,
-        sourceId: item.source_id,
-        timestamp: new Date(item.logged_at).getTime(),
-        detailedNutrients: item.detailed_nutrients
-      }));
-      setLogs(mapped);
+      if (data && !error) {
+        const mapped: MealLogItem[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          imageUrl: item.image_url,
+          calories: item.calories,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          sourceType: item.source_type,
+          sourceId: item.source_id,
+          timestamp: new Date(item.logged_at).getTime(),
+          detailedNutrients: item.detailed_nutrients
+        }));
+        setLogs(mapped);
+      }
+    } catch (e) {
+      console.warn("Error fetching logs:", e);
     }
   };
 
@@ -88,39 +91,47 @@ export const DailyLogProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [logs]);
 
   const addLog = async (item: Omit<MealLogItem, 'id' | 'timestamp'>) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      showToast('请先登录', 'error');
-      return;
-    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        showToast('请先登录', 'error');
+        return;
+      }
 
-    const { data, error } = await supabase.from('food_logs').insert({
-      user_id: session.user.id,
-      name: item.name,
-      image_url: item.imageUrl,
-      calories: item.calories,
-      protein: item.protein,
-      carbs: item.carbs,
-      fat: item.fat,
-      source_type: item.sourceType,
-      source_id: item.sourceId,
-      detailed_nutrients: item.detailedNutrients
-    }).select().single();
+      const { data, error } = await supabase.from('food_logs').insert({
+        user_id: session.user.id,
+        name: item.name,
+        image_url: item.imageUrl,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        source_type: item.sourceType,
+        source_id: item.sourceId,
+        detailed_nutrients: item.detailedNutrients
+      }).select().single();
 
-    if (error) {
-      console.error(error);
-      showToast('记录失败', 'error');
-    } else if (data) {
-      showToast(`已加入: ${item.name}`, 'success');
-      fetchLogs(); // Reload to sync
+      if (error) {
+        console.error(error);
+        showToast('记录失败', 'error');
+      } else if (data) {
+        showToast(`已加入: ${item.name}`, 'success');
+        fetchLogs(); // Reload to sync
+      }
+    } catch(e) {
+      showToast('网络错误，记录失败', 'error');
     }
   };
 
   const removeLog = async (id: string) => {
-    const { error } = await supabase.from('food_logs').delete().eq('id', id);
-    if (!error) {
-      setLogs(prev => prev.filter(l => l.id !== id));
-      showToast('记录已删除', 'info');
+    try {
+      const { error } = await supabase.from('food_logs').delete().eq('id', id);
+      if (!error) {
+        setLogs(prev => prev.filter(l => l.id !== id));
+        showToast('记录已删除', 'info');
+      }
+    } catch(e) {
+       showToast('删除失败', 'error');
     }
   };
 

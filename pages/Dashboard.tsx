@@ -133,33 +133,31 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          {/* Donut Chart */}
+          {/* Donut Chart - Fixed Size to prevent Recharts -1 Error */}
           <div className="relative w-32 h-32 shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={calorieData}
-                  cx="50%" cy="50%"
-                  innerRadius={45}
-                  outerRadius={60}
-                  startAngle={90}
-                  endAngle={-270}
-                  dataKey="value"
-                  stroke="none"
-                  cornerRadius={10}
-                  paddingAngle={5}
-                >
-                  <Cell fill="url(#gradientMain)" />
-                  <Cell fill="#f1f5f9" />
-                </Pie>
-                <defs>
-                   <linearGradient id="gradientMain" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#34d399" />
-                      <stop offset="100%" stopColor="#0d9488" />
-                   </linearGradient>
-                </defs>
-              </PieChart>
-            </ResponsiveContainer>
+            <PieChart width={128} height={128}>
+              <Pie
+                data={calorieData}
+                cx="50%" cy="50%"
+                innerRadius={45}
+                outerRadius={60}
+                startAngle={90}
+                endAngle={-270}
+                dataKey="value"
+                stroke="none"
+                cornerRadius={10}
+                paddingAngle={5}
+              >
+                <Cell fill="url(#gradientMain)" />
+                <Cell fill="#f1f5f9" />
+              </Pie>
+              <defs>
+                  <linearGradient id="gradientMain" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#0d9488" />
+                  </linearGradient>
+              </defs>
+            </PieChart>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">剩余</span>
                <span className="text-2xl font-black text-slate-800 -mt-1">{remainingCalories.toFixed(0)}</span>

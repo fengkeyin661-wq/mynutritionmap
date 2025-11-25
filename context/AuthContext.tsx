@@ -118,7 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (error) {
-        // 如果没有找到 profile (可能是新用户延迟)，暂不报错，让 UI 显示默认或 loading
+        // 如果没有找到 profile (可能是新用户延迟)，暂不报错
         console.warn('Profile fetch warning:', error.message);
       }
       
@@ -161,29 +161,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const loadFavorites = async (userId: string) => {
-    const { data } = await supabase.from('favorites').select('*').eq('user_id', userId);
-    if (data) {
-      setFavoriteRecipes(data.filter(f => f.item_type === 'RECIPE').map(f => f.item_id));
-      setFavoriteProducts(data.filter(f => f.item_type === 'PRODUCT').map(f => f.item_id));
+    try {
+      const { data } = await supabase.from('favorites').select('*').eq('user_id', userId);
+      if (data) {
+        setFavoriteRecipes(data.filter(f => f.item_type === 'RECIPE').map(f => f.item_id));
+        setFavoriteProducts(data.filter(f => f.item_type === 'PRODUCT').map(f => f.item_id));
+      }
+    } catch(e) {
+      console.warn("Failed to load favorites", e);
     }
   };
 
   const loadFoodLibrary = async (userId: string) => {
-    const { data } = await supabase.from('user_food_library').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-    if (data) {
-      const mapped: UserFoodItem[] = data.map(item => ({
-        id: item.id,
-        name: item.name,
-        imageUrl: item.image_url,
-        calories: item.calories,
-        detailedNutrients: item.detailed_nutrients,
-        timestamp: new Date(item.created_at).getTime(),
-        // 简单映射
-        protein: item.detailed_nutrients?.protein?.value || 0,
-        carbs: item.detailed_nutrients?.carbs?.total?.value || 0,
-        fat: item.detailed_nutrients?.fat?.total?.value || 0
-      }));
-      setUserFoodLibrary(mapped);
+    try {
+      const { data } = await supabase.from('user_food_library').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+      if (data) {
+        const mapped: UserFoodItem[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          imageUrl: item.image_url,
+          calories: item.calories,
+          detailedNutrients: item.detailed_nutrients,
+          timestamp: new Date(item.created_at).getTime(),
+          protein: item.detailed_nutrients?.protein?.value || 0,
+          carbs: item.detailed_nutrients?.carbs?.total?.value || 0,
+          fat: item.detailed_nutrients?.fat?.total?.value || 0
+        }));
+        setUserFoodLibrary(mapped);
+      }
+    } catch(e) {
+      console.warn("Failed to load food library", e);
     }
   };
 
@@ -236,11 +243,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (profileError) {
         console.error('Profile Creation Error:', profileError);
         showToast('账号创建成功但资料保存异常，请稍后重试', 'info');
-        // We don't return false here because the Auth account was created
       }
 
-      // Explicitly fetch profile to ensure state sync
-      // Wait a small moment for DB propagation if needed
       setTimeout(() => {
         if (data.user) fetchProfile(data.user.id);
       }, 500);
@@ -288,30 +292,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return;
 
-    // Check if exists
-    const { data } = await supabase.from('favorites')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('item_id', id)
-      .eq('item_type', type)
-      .single();
+    try {
+      const { data } = await supabase.from('favorites')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('item_id', id)
+        .eq('item_type', type)
+        .single();
 
-    if (data) {
-      // Remove
-      await supabase.from('favorites').delete().eq('id', data.id);
-      if (type === 'RECIPE') setFavoriteRecipes(prev => prev.filter(i => i !== id));
-      else setFavoriteProducts(prev => prev.filter(i => i !== id));
-      showToast('已取消收藏', 'info');
-    } else {
-      // Add
-      await supabase.from('favorites').insert({
-        user_id: user.id,
-        item_id: id,
-        item_type: type
-      });
-      if (type === 'RECIPE') setFavoriteRecipes(prev => [...prev, id]);
-      else setFavoriteProducts(prev => [...prev, id]);
-      showToast('已加入收藏', 'success');
+      if (data) {
+        // Remove
+        await supabase.from('favorites').delete().eq('id', data.id);
+        if (type === 'RECIPE') setFavoriteRecipes(prev => prev.filter(i => i !== id));
+        else setFavoriteProducts(prev => prev.filter(i => i !== id));
+        showToast('已取消收藏', 'info');
+      } else {
+        // Add
+        await supabase.from('favorites').insert({
+          user_id: user.id,
+          item_id: id,
+          item_type: type
+        });
+        if (type === 'RECIPE') setFavoriteRecipes(prev => [...prev, id]);
+        else setFavoriteProducts(prev => [...prev, id]);
+        showToast('已加入收藏', 'success');
+      }
+    } catch(e) {
+      showToast('操作失败', 'error');
     }
   };
 
@@ -325,27 +332,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) return;
 
-    const { data, error } = await supabase.from('user_food_library').insert({
-      user_id: user.id,
-      name: item.name,
-      image_url: item.imageUrl,
-      calories: item.calories,
-      detailed_nutrients: item.detailedNutrients
-    }).select().single();
+    try {
+      const { data, error } = await supabase.from('user_food_library').insert({
+        user_id: user.id,
+        name: item.name,
+        image_url: item.imageUrl,
+        calories: item.calories,
+        detailed_nutrients: item.detailedNutrients
+      }).select().single();
 
-    if (!error && data) {
-       loadFoodLibrary(user.id);
+      if (!error && data) {
+         loadFoodLibrary(user.id);
+      }
+    } catch(e) {
+      console.warn("Save to library failed", e);
     }
   };
 
   const deleteFromFoodLibrary = async (id: string) => {
-    await supabase.from('user_food_library').delete().eq('id', id);
-    setUserFoodLibrary(prev => prev.filter(i => i.id !== id));
-    showToast('已移除', 'info');
+    try {
+      await supabase.from('user_food_library').delete().eq('id', id);
+      setUserFoodLibrary(prev => prev.filter(i => i.id !== id));
+      showToast('已移除', 'info');
+    } catch(e) {
+      showToast('删除失败', 'error');
+    }
   };
 
   const loginAs = (targetRole: UserRole, merchantId?: string, mName?: string) => {
-    // Legacy support, mostly handled by fetching profile now
     setRole(targetRole);
     if(merchantId) setCurrentMerchantId(merchantId);
     if(mName) setMerchantName(mName);
