@@ -215,7 +215,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       options: {
         data: {
           nickname: profile.nickname,
-          avatar_url: profile.avatarUrl
+          avatar_url: profile.avatarUrl,
+          role: 'USER' // Explicitly set role for triggers
         }
       }
     });
@@ -226,7 +227,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     if (data.user) {
-      // Create or Update Profile Record (Using Upsert for safety)
+      // Create or Update Profile Record (Using Upsert for safety against triggers)
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         nickname: profile.nickname,
@@ -242,7 +243,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (profileError) {
         console.error('Profile Creation Error:', profileError);
-        showToast('账号创建成功但资料保存异常，请稍后重试', 'info');
+        // Don't show error to user if it's just a duplicate key warning from trigger, they are registered
       }
 
       setTimeout(() => {

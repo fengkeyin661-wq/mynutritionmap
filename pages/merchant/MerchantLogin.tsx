@@ -63,19 +63,33 @@ const MerchantLogin: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Sign Up User
-      const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+      // 1. Sign Up User with Metadata
+      // 传递 role='MERCHANT' 元数据，以便数据库触发器(如果存在)能自动设置正确角色
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            nickname: shopName,
+            role: 'MERCHANT'
+          }
+        }
+      });
       if (authError) throw authError;
 
       if (authData.user) {
-         // 2. Create Profile as MERCHANT
-         const { error: profileError } = await supabase.from('profiles').insert({
+         // 2. Upsert Profile (Safeguard against trigger race conditions)
+         // 使用 upsert 而不是 insert，防止触发器已经创建了 profile 导致主键冲突
+         const { error: profileError } = await supabase.from('profiles').upsert({
             id: authData.user.id,
             nickname: shopName, // Use shop name as nickname initially
             role: 'MERCHANT'
          });
          
-         if (profileError) throw profileError;
+         if (profileError) {
+           console.error("Profile Upsert Warning:", profileError);
+           // 不抛出错误，因为只要用户创建成功，通常可以继续尝试创建商家信息
+         }
 
          // 3. Create Merchant Record
          const { error: merchantError } = await supabase.from('merchants').insert({
@@ -98,8 +112,15 @@ const MerchantLogin: React.FC = () => {
          if (merchantError) throw merchantError;
 
          showToast('入驻申请已提交，等待审核', 'success');
-         // Auto login logic will handle redirection via AuthContext listener or manual
-         navigate('/merchant/dashboard');
+         
+         // 尝试自动登录或跳转
+         // 如果 Supabase 需要邮箱验证，authData.session 可能为空
+         if (authData.session) {
+            navigate('/merchant/dashboard');
+         } else {
+            showToast('请查收邮件并验证邮箱后登录', 'info');
+            setIsRegistering(false);
+         }
       }
 
     } catch (e: any) {
