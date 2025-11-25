@@ -310,7 +310,7 @@ const ProductDetail: React.FC = () => {
                onClick={handleAddToLog}
                className="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
-               <PlusCircle size={18} /> 记入今日
+               <PlusCircle size={18} /> 加入食谱
             </button>
             <button className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-200">
                立即购买

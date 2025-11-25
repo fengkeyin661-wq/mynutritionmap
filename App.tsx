@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navigation from './components/Navigation';
@@ -26,8 +27,11 @@ const App: React.FC = () => {
         <PlatformProvider>
           <DailyLogProvider>
             <Router>
-              <div className="max-w-md mx-auto min-h-screen bg-slate-50 relative overflow-hidden shadow-2xl">
-                <div className="h-full w-full overflow-y-auto no-scrollbar">
+              {/* Main App Container - Mobile Optimized */}
+              <div className="w-full md:max-w-[480px] mx-auto min-h-[100dvh] bg-slate-50 relative shadow-2xl flex flex-col">
+                
+                {/* Scrollable Content Area */}
+                <div className="flex-1 w-full overflow-y-auto no-scrollbar pb-24">
                   <Routes>
                     {/* Public/User Routes */}
                     <Route path="/" element={<Dashboard />} />
@@ -51,6 +55,8 @@ const App: React.FC = () => {
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </div>
+
+                {/* Navigation (Fixed relative to viewport but centered via CSS in component) */}
                 <Navigation />
               </div>
             </Router>

@@ -97,7 +97,7 @@ const RecipeDetail: React.FC = () => {
                 onClick={handleAddToLog}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full font-bold text-xs shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
               >
-                 <PlusCircle size={16} /> 记入饮食
+                 <PlusCircle size={16} /> 加入食谱
               </button>
            </div>
         </div>

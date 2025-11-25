@@ -1,18 +1,22 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { UserRole, UserProfile, Gender, ActivityLevel } from '../types';
+import { UserRole, UserProfile, Gender, ActivityLevel, UserFoodItem } from '../types';
 import { useToast } from './ToastContext';
+import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
   role: UserRole;
   userProfile: UserProfile | null;
   currentMerchantId: string | null;
-  merchantName: string | null; // 新增：当前商户名称
+  merchantName: string | null;
+  isLoading: boolean;
   
   // Actions
-  loginAs: (role: UserRole, merchantId?: string, merchantName?: string) => void;
+  login: (email: string, pass: string) => Promise<boolean>;
+  register: (email: string, pass: string, profile: UserProfile) => Promise<boolean>;
   logout: () => void;
   updateUserProfile: (profile: UserProfile) => void;
+  loginAs: (targetRole: UserRole, merchantId?: string, mName?: string) => void;
   
   // Favorites
   favoriteRecipes: string[];
@@ -21,6 +25,11 @@ interface AuthContextType {
   toggleFavoriteProduct: (id: string) => void;
   isFavoriteRecipe: (id: string) => boolean;
   isFavoriteProduct: (id: string) => boolean;
+
+  // DIY Food Library
+  userFoodLibrary: UserFoodItem[];
+  saveToFoodLibrary: (item: Omit<UserFoodItem, 'id' | 'timestamp'>) => void;
+  deleteFromFoodLibrary: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,32 +42,28 @@ export const useAuth = () => {
   return context;
 };
 
-// 基础代谢率计算公式 (Mifflin-St Jeor Equation)
+// 基础代谢率计算
 const calculateBMR = (gender: Gender, weight: number, height: number, age: number): number => {
-  // Weight in kg, Height in cm, Age in years
   let bmr = (10 * weight) + (6.25 * height) - (5 * age);
-  if (gender === 'MALE') {
-    bmr += 5;
-  } else {
-    bmr -= 161;
-  }
+  if (gender === 'MALE') bmr += 5;
+  else bmr -= 161;
   return Math.round(bmr);
 };
 
-// 每日总能量消耗计算
+// TDEE 计算
 const calculateTDEE = (bmr: number, level: ActivityLevel): number => {
   const multipliers: Record<ActivityLevel, number> = {
-    'SEDENTARY': 1.2,      // 久坐
-    'LIGHT': 1.375,        // 轻度活动
-    'MODERATE': 1.55,      // 中度活动
-    'ACTIVE': 1.725,       // 高度活动
-    'VERY_ACTIVE': 1.9     // 极度活动
+    'SEDENTARY': 1.2,
+    'LIGHT': 1.375,
+    'MODERATE': 1.55,
+    'ACTIVE': 1.725,
+    'VERY_ACTIVE': 1.9
   };
   return Math.round(bmr * (multipliers[level] || 1.2));
 };
 
 const calculateBMI = (weight: number, height: number): number => {
-  const h = height / 100; // convert to meters
+  const h = height / 100;
   return parseFloat((weight / (h * h)).toFixed(1));
 };
 
@@ -66,90 +71,274 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { showToast } = useToast();
   
   const [role, setRole] = useState<UserRole>('USER');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [currentMerchantId, setCurrentMerchantId] = useState<string | null>(null);
   const [merchantName, setMerchantName] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // 用户资料
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  
-  // 收藏夹 (存储ID)
   const [favoriteRecipes, setFavoriteRecipes] = useState<string[]>([]);
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
+  const [userFoodLibrary, setUserFoodLibrary] = useState<UserFoodItem[]>([]);
 
-  const loginAs = (newRole: UserRole, merchantId?: string, mName?: string) => {
-    setRole(newRole);
-    if (newRole === 'MERCHANT' && merchantId) {
-      setCurrentMerchantId(merchantId);
-      setMerchantName(mName || '我的店铺');
-    } else {
-      setCurrentMerchantId(null);
-      setMerchantName(null);
+  // 1. 初始化检查 Session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        fetchProfile(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        fetchProfile(session.user.id);
+      } else {
+        setRole('USER');
+        setUserProfile(null);
+        setCurrentMerchantId(null);
+        setMerchantName(null);
+        setFavoriteRecipes([]);
+        setFavoriteProducts([]);
+        setUserFoodLibrary([]);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 2. 拉取用户完整档案
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        // Map DB snake_case to Frontend camelCase
+        const profile: UserProfile = {
+          nickname: data.nickname,
+          avatarUrl: data.avatar_url,
+          gender: data.gender as Gender,
+          age: data.age,
+          height: data.height,
+          weight: data.weight,
+          activityLevel: data.activity_level as ActivityLevel,
+          bmr: data.bmr,
+          tdee: data.tdee,
+          bmi: data.bmi
+        };
+        
+        setUserProfile(profile);
+        setRole((data.role as UserRole) || 'USER');
+        
+        // 如果是商家，获取商家信息
+        if (data.role === 'MERCHANT') {
+           const { data: merchantData } = await supabase.from('merchants').select('id, name').eq('owner_id', userId).single();
+           if (merchantData) {
+             setCurrentMerchantId(merchantData.id);
+             setMerchantName(merchantData.name);
+           }
+        }
+
+        // 加载关联数据
+        loadFavorites(userId);
+        loadFoodLibrary(userId);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const logout = () => {
-    setRole('USER');
-    setCurrentMerchantId(null);
-    setMerchantName(null);
-    // 登出不一定清空 Profile，视需求而定，这里保留以便演示
+  const loadFavorites = async (userId: string) => {
+    const { data } = await supabase.from('favorites').select('*').eq('user_id', userId);
+    if (data) {
+      setFavoriteRecipes(data.filter(f => f.item_type === 'RECIPE').map(f => f.item_id));
+      setFavoriteProducts(data.filter(f => f.item_type === 'PRODUCT').map(f => f.item_id));
+    }
   };
 
-  const updateUserProfile = (profileData: UserProfile) => {
-    // 自动计算 BMR, TDEE, BMI
+  const loadFoodLibrary = async (userId: string) => {
+    const { data } = await supabase.from('user_food_library').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (data) {
+      const mapped: UserFoodItem[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        imageUrl: item.image_url,
+        calories: item.calories,
+        detailedNutrients: item.detailed_nutrients,
+        timestamp: new Date(item.created_at).getTime(),
+        // 简单映射，实际上数据库没存这几个冗余字段，可以从 detailedNutrients 拿
+        protein: item.detailed_nutrients?.protein?.value || 0,
+        carbs: item.detailed_nutrients?.carbs?.total?.value || 0,
+        fat: item.detailed_nutrients?.fat?.total?.value || 0
+      }));
+      setUserFoodLibrary(mapped);
+    }
+  };
+
+  // Actions
+  const login = async (email: string, pass: string): Promise<boolean> => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+      showToast(error.message, 'error');
+      return false;
+    }
+    return true;
+  };
+
+  const register = async (email: string, pass: string, profile: UserProfile): Promise<boolean> => {
+    const bmr = calculateBMR(profile.gender, profile.weight, profile.height, profile.age);
+    const tdee = calculateTDEE(bmr, profile.activityLevel);
+    const bmi = calculateBMI(profile.weight, profile.height);
+
+    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+    if (error) {
+      showToast(error.message, 'error');
+      return false;
+    }
+
+    if (data.user) {
+      // Create Profile Record
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        nickname: profile.nickname,
+        avatar_url: profile.avatarUrl,
+        gender: profile.gender,
+        age: profile.age,
+        height: profile.height,
+        weight: profile.weight,
+        activity_level: profile.activityLevel,
+        bmr, tdee, bmi,
+        role: 'USER'
+      });
+      
+      if (profileError) {
+        console.error(profileError);
+        showToast('账号创建成功但资料保存失败', 'error');
+      } else {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+    showToast('已安全退出', 'success');
+  };
+
+  const updateUserProfile = async (profileData: UserProfile) => {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return;
+
     const bmr = calculateBMR(profileData.gender, profileData.weight, profileData.height, profileData.age);
     const tdee = calculateTDEE(bmr, profileData.activityLevel);
     const bmi = calculateBMI(profileData.weight, profileData.height);
 
-    const fullProfile: UserProfile = {
-      ...profileData,
-      bmr,
-      tdee,
-      bmi
-    };
+    const fullProfile = { ...profileData, bmr, tdee, bmi };
 
-    setUserProfile(fullProfile);
-    showToast(`资料已更新，您的每日推荐热量为 ${tdee} kcal`, 'success');
-  };
+    const { error } = await supabase.from('profiles').update({
+       nickname: fullProfile.nickname,
+       gender: fullProfile.gender,
+       age: fullProfile.age,
+       height: fullProfile.height,
+       weight: fullProfile.weight,
+       activity_level: fullProfile.activityLevel,
+       bmr, tdee, bmi
+    }).eq('id', user.id);
 
-  // 收藏逻辑
-  const toggleFavoriteRecipe = (id: string) => {
-    if (favoriteRecipes.includes(id)) {
-      setFavoriteRecipes(prev => prev.filter(rid => rid !== id));
-      showToast('已取消收藏', 'info');
+    if (error) {
+      showToast('更新失败', 'error');
     } else {
-      setFavoriteRecipes(prev => [...prev, id]);
-      showToast('已添加到收藏夹', 'success');
+      setUserProfile(fullProfile);
+      showToast('资料已更新', 'success');
     }
   };
 
-  const toggleFavoriteProduct = (id: string) => {
-    if (favoriteProducts.includes(id)) {
-      setFavoriteProducts(prev => prev.filter(pid => pid !== id));
+  // Favorites
+  const toggleFavorite = async (id: string, type: 'RECIPE' | 'PRODUCT') => {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return;
+
+    // Check if exists
+    const { data } = await supabase.from('favorites')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('item_id', id)
+      .eq('item_type', type)
+      .single();
+
+    if (data) {
+      // Remove
+      await supabase.from('favorites').delete().eq('id', data.id);
+      if (type === 'RECIPE') setFavoriteRecipes(prev => prev.filter(i => i !== id));
+      else setFavoriteProducts(prev => prev.filter(i => i !== id));
       showToast('已取消收藏', 'info');
     } else {
-      setFavoriteProducts(prev => [...prev, id]);
-      showToast('已添加到收藏夹', 'success');
+      // Add
+      await supabase.from('favorites').insert({
+        user_id: user.id,
+        item_id: id,
+        item_type: type
+      });
+      if (type === 'RECIPE') setFavoriteRecipes(prev => [...prev, id]);
+      else setFavoriteProducts(prev => [...prev, id]);
+      showToast('已加入收藏', 'success');
     }
   };
 
+  const toggleFavoriteRecipe = (id: string) => toggleFavorite(id, 'RECIPE');
+  const toggleFavoriteProduct = (id: string) => toggleFavorite(id, 'PRODUCT');
   const isFavoriteRecipe = (id: string) => favoriteRecipes.includes(id);
   const isFavoriteProduct = (id: string) => favoriteProducts.includes(id);
 
+  // Food Library
+  const saveToFoodLibrary = async (item: Omit<UserFoodItem, 'id' | 'timestamp'>) => {
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) return;
+
+    const { data, error } = await supabase.from('user_food_library').insert({
+      user_id: user.id,
+      name: item.name,
+      image_url: item.imageUrl,
+      calories: item.calories,
+      detailed_nutrients: item.detailedNutrients
+    }).select().single();
+
+    if (!error && data) {
+       // Reload logic or optimistic update
+       loadFoodLibrary(user.id);
+    }
+  };
+
+  const deleteFromFoodLibrary = async (id: string) => {
+    await supabase.from('user_food_library').delete().eq('id', id);
+    setUserFoodLibrary(prev => prev.filter(i => i.id !== id));
+    showToast('已移除', 'info');
+  };
+
+  // 这里的 loginAs 主要是为了兼容旧代码结构，实际上应该通过真实的 login 替代
+  // 在此我们保留它用于 MerchantLogin 页面的注册后自动切换逻辑
+  const loginAs = (targetRole: UserRole, merchantId?: string, mName?: string) => {
+    // 这是一个 legacy wrapper，实际逻辑已在 fetchProfile 中处理
+    setRole(targetRole);
+    if(merchantId) setCurrentMerchantId(merchantId);
+    if(mName) setMerchantName(mName);
+  };
+
   return (
     <AuthContext.Provider value={{ 
-      role, 
-      userProfile,
-      currentMerchantId, 
-      merchantName,
-      loginAs, 
-      logout,
-      updateUserProfile,
-      favoriteRecipes,
-      favoriteProducts,
-      toggleFavoriteRecipe,
-      toggleFavoriteProduct,
-      isFavoriteRecipe,
-      isFavoriteProduct
+      role, userProfile, currentMerchantId, merchantName, isLoading,
+      login, register, logout, updateUserProfile, loginAs,
+      favoriteRecipes, favoriteProducts, toggleFavoriteRecipe, toggleFavoriteProduct, isFavoriteRecipe, isFavoriteProduct,
+      userFoodLibrary, saveToFoodLibrary, deleteFromFoodLibrary
     }}>
       {children}
     </AuthContext.Provider>

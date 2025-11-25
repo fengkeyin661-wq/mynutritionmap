@@ -3,17 +3,17 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDailyLog } from '../context/DailyLogContext';
 import { 
-  User, Settings, ChevronRight, LogOut, Heart, ShoppingBag, 
-  QrCode, MessageSquare, Info, BookOpen, Camera, Edit2, X, Flame, Trash2,
-  Shield, FileText, Lock
+  User, ChevronRight, LogOut, Heart, 
+  QrCode, Info, Camera, Edit2, X, Trash2,
+  Shield, FileText, Flame, PlusCircle
 } from 'lucide-react';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 
 type ModalType = 'NONE' | 'QR' | 'LOGS' | 'AGREEMENT' | 'PRIVACY' | 'ABOUT';
 
 const Profile: React.FC = () => {
-  const { role, userProfile, loginAs, logout, favoriteRecipes, favoriteProducts } = useAuth();
-  const { logs, removeLog } = useDailyLog();
+  const { role, userProfile, loginAs, logout, favoriteRecipes, favoriteProducts, userFoodLibrary, deleteFromFoodLibrary } = useAuth();
+  const { addLog } = useDailyLog();
   const navigate = useNavigate();
   
   const [activeModal, setActiveModal] = useState<ModalType>('NONE');
@@ -32,11 +32,21 @@ const Profile: React.FC = () => {
   };
 
   const handleFoodLogClick = () => {
-    if (logs.length === 0) {
-      navigate('/'); // 没有记录，跳转首页
-    } else {
-      setActiveModal('LOGS');
-    }
+    // 即使没有记录也打开，展示空状态引导
+    setActiveModal('LOGS');
+  };
+
+  const handleAddToDailyLog = (item: any) => {
+    addLog({
+      name: item.name,
+      imageUrl: item.imageUrl,
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fat: item.fat,
+      sourceType: 'AI_ANALYSIS', // DIY items are usually from analysis
+      detailedNutrients: item.detailedNutrients
+    });
   };
 
   const closeModal = () => setActiveModal('NONE');
@@ -115,7 +125,7 @@ const Profile: React.FC = () => {
                <div>
                   <div className="font-bold text-slate-700">饮食记录</div>
                   <div className="text-xs text-slate-400">
-                    {logs.length > 0 ? `已记录 ${logs.length} 餐` : '今天还没吃'}
+                    {userFoodLibrary.length > 0 ? `已上传 ${userFoodLibrary.length} 道` : '自建DIY库'}
                   </div>
                </div>
             </button>
@@ -202,7 +212,7 @@ const Profile: React.FC = () => {
 
       {/* QR Code Modal */}
       {activeModal === 'QR' && (
-         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in">
+         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in">
             <div className="bg-white rounded-3xl p-8 w-full max-w-sm text-center animate-fade-in-up relative">
                <button onClick={closeModal} className="absolute top-4 right-4 text-slate-300 hover:text-slate-500">
                   <X size={24} />
@@ -217,40 +227,50 @@ const Profile: React.FC = () => {
          </div>
       )}
 
-      {/* Food Logs Modal */}
+      {/* Food Logs Modal -> Now "User Food Library" */}
       {activeModal === 'LOGS' && (
-         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-white w-full max-w-md h-[80vh] sm:h-[600px] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col animate-slide-up shadow-2xl">
-               <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white z-10">
-                  <h3 className="text-xl font-bold text-slate-800">今日饮食记录</h3>
-                  <button onClick={closeModal} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
+               <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white z-10 sticky top-0">
+                  <div>
+                     <h3 className="text-lg font-bold text-slate-800">我的DIY美食库</h3>
+                     <p className="text-xs text-slate-400">所有拍照/识别的历史记录 (仅自己可见)</p>
+                  </div>
+                  <button onClick={closeModal} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100">
                      <X size={20} />
                   </button>
                </div>
-               <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
-                  <div className="space-y-3">
-                    {logs.map((log) => (
-                       <div key={log.id} className="bg-white p-3 rounded-2xl shadow-sm border border-slate-50 flex items-center gap-3">
-                          <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden shrink-0 relative">
-                             {log.imageUrl ? <img src={log.imageUrl} alt={log.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400"><Flame size={16} /></div>}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                             <h4 className="font-bold text-slate-700 text-sm truncate">{log.name}</h4>
-                             <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1.5">
-                                <span className="font-bold text-slate-600">{log.calories} kcal</span>
-                                <span className="w-px h-2 bg-slate-200"></span>
-                                <span>P:{log.protein}g C:{log.carbs}g F:{log.fat}g</span>
-                             </div>
-                          </div>
-                          <button onClick={() => removeLog(log.id)} className="p-1.5 text-slate-300 hover:text-red-500 bg-slate-50 hover:bg-red-50 rounded-lg"><Trash2 size={12} /></button>
-                       </div>
-                    ))}
-                  </div>
-                  {logs.length === 0 && (
-                     <div className="text-center py-10 text-slate-400">
-                        <p>记录已清空</p>
-                        <button onClick={() => navigate('/')} className="text-emerald-600 text-sm font-bold mt-2">去首页添加</button>
+               <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {userFoodLibrary.length === 0 ? (
+                     <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                        <Camera size={48} className="mb-2 opacity-20" />
+                        <p className="text-sm">暂无DIY记录</p>
+                        <p className="text-xs mt-1">去"识别"页面拍照上传吧</p>
                      </div>
+                  ) : (
+                     userFoodLibrary.map(item => (
+                        <div key={item.id} className="bg-white p-3 rounded-2xl border border-slate-100 flex items-center gap-3 shadow-sm">
+                           <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden shrink-0 relative group">
+                             {item.imageUrl ? <img src={item.imageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Flame size={20} className="text-slate-300"/></div>}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-slate-700 truncate">{item.name}</h4>
+                              <p className="text-xs text-slate-400 mt-1">{item.calories} kcal</p>
+                           </div>
+                           
+                           <div className="flex items-center gap-2">
+                             <button 
+                               onClick={() => handleAddToDailyLog(item)}
+                               className="px-3 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-xs rounded-lg flex items-center gap-1 active:scale-95 transition-transform"
+                             >
+                               <PlusCircle size={14} /> 加入食谱
+                             </button>
+                             <button onClick={() => deleteFromFoodLibrary(item.id)} className="p-2 text-slate-300 hover:text-red-500 bg-slate-50 rounded-lg">
+                                <Trash2 size={16} />
+                             </button>
+                           </div>
+                        </div>
+                     ))
                   )}
                </div>
             </div>
@@ -259,93 +279,110 @@ const Profile: React.FC = () => {
 
       {/* User Agreement Modal */}
       {activeModal === 'AGREEMENT' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-slide-up">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <FileText size={20} className="text-emerald-600" /> 用户服务协议
-              </h3>
-              <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={20}/></button>
+         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white w-full max-w-md h-[85vh] sm:h-[700px] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col animate-slide-up shadow-2xl">
+               <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="text-lg font-bold text-slate-800">用户服务协议</h3>
+                  <button onClick={closeModal}><X size={24} className="text-slate-400" /></button>
+               </div>
+               <div className="flex-1 overflow-y-auto p-6 text-sm text-slate-600 leading-relaxed space-y-6">
+                  <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl text-amber-800 text-xs font-bold leading-5">
+                     特别提示：本应用提供的所有营养分析数据（含AI识别结果）仅供健康管理参考，不作为医疗诊断或治疗依据。在使用本服务前，请仔细阅读本协议。
+                  </div>
+                  
+                  <section>
+                     <h4 className="font-bold text-slate-800 mb-2">1. 服务内容</h4>
+                     <p>NutriMap 是一款提供食物识别、营养分析、食谱分享及商家信息展示的智能健康助手应用。我们致力于通过技术手段帮助用户更好地管理饮食健康。</p>
+                  </section>
+                  
+                  <section>
+                     <h4 className="font-bold text-slate-800 mb-2">2. 用户规范</h4>
+                     <ul className="list-disc pl-4 space-y-1">
+                        <li>用户需保证在注册时提供真实、准确的个人信息（身高、体重等），以便我们提供准确的健康建议。</li>
+                        <li>用户在社区发布的内容（食谱、评论）需符合法律法规，不得包含违法、色情、暴力或虚假信息。</li>
+                        <li>严禁恶意攻击、骚扰其他用户或商家。</li>
+                     </ul>
+                  </section>
+
+                  <section>
+                     <h4 className="font-bold text-slate-800 mb-2">3. 知识产权</h4>
+                     <p>用户在平台发布的原创内容（如食谱图片、文字），著作权归用户所有，但用户授权 NutriMap 在平台范围内免费使用、展示及推广。</p>
+                  </section>
+
+                  <section>
+                     <h4 className="font-bold text-slate-800 mb-2">4. 免责声明</h4>
+                     <p>AI 识别技术存在一定误差，识别结果受光线、角度等因素影响。我们不对因依赖此类数据而导致的任何健康问题承担法律责任。若您有特定疾病或饮食限制，请务必遵从专业医生的指导。</p>
+                  </section>
+               </div>
+               <div className="p-4 border-t border-slate-100 bg-white">
+                  <button onClick={closeModal} className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">我已阅读并同意</button>
+               </div>
             </div>
-            <div className="p-6 overflow-y-auto text-sm text-slate-600 leading-relaxed space-y-4">
-              <div className="p-3 bg-amber-50 text-amber-800 rounded-xl text-xs font-bold mb-2">
-                重要提示：NutriMap 提供的所有营养分析与建议仅供参考，不构成医疗诊断或治疗建议。
-              </div>
-              <p>欢迎您使用 NutriMap！请您仔细阅读以下条款：</p>
-              
-              <h4 className="font-bold text-slate-800">1. 服务内容</h4>
-              <p>NutriMap 是一款利用人工智能技术提供食物识别、营养分析及饮食管理的工具。我们致力于提供准确的数据，但不对AI分析结果的绝对准确性负责。</p>
-              
-              <h4 className="font-bold text-slate-800">2. 用户行为规范</h4>
-              <p>您在使用社区功能（发布食谱、评论）时，不得发布违法、色情、暴力或侵犯他人知识产权的内容。我们保留删除违规内容及封禁账号的权利。</p>
-              
-              <h4 className="font-bold text-slate-800">3. 免责声明</h4>
-              <p>本应用提供的健康建议基于一般人群标准。孕妇、慢性病患者或有特殊饮食需求的用户，请遵循专业医生或注册营养师的指导。</p>
-              
-              <h4 className="font-bold text-slate-800">4. 知识产权</h4>
-              <p>应用内的设计、代码、算法及官方内容归 NutriMap 所有。用户发布的原创食谱版权归用户所有，但授权 NutriMap 在平台内展示及推广。</p>
-            </div>
-            <div className="p-4 border-t border-slate-100 bg-slate-50">
-              <button onClick={closeModal} className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl">我已阅读并同意</button>
-            </div>
-          </div>
-        </div>
+         </div>
       )}
 
       {/* Privacy Policy Modal */}
       {activeModal === 'PRIVACY' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-slide-up">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Shield size={20} className="text-emerald-600" /> 隐私保护政策
-              </h3>
-              <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><X size={20}/></button>
+         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white w-full max-w-md h-[85vh] sm:h-[700px] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col animate-slide-up shadow-2xl">
+               <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="text-lg font-bold text-slate-800">隐私政策</h3>
+                  <button onClick={closeModal}><X size={24} className="text-slate-400" /></button>
+               </div>
+               <div className="flex-1 overflow-y-auto p-6 text-sm text-slate-600 leading-relaxed space-y-6">
+                  <p>NutriMap（以下简称“我们”）非常重视您的隐私。本政策旨在说明我们如何收集、使用和保护您的个人信息。</p>
+                  
+                  <section>
+                     <h4 className="font-bold text-slate-800 mb-2">1. 我们收集的信息</h4>
+                     <ul className="list-disc pl-4 space-y-1">
+                        <li><strong>身体数据：</strong>如性别、年龄、身高、体重、活动水平。这些数据仅用于计算您的 BMR 和 TDEE，存储于本地或加密服务器，绝不用于其他用途。</li>
+                        <li><strong>多媒体信息：</strong>当您使用拍照识别功能时，我们需要访问您的相机或相册。上传的图片仅用于 AI 分析，分析完成后不会被永久用于训练。</li>
+                        <li><strong>位置信息：</strong>当您查找附近商家或注册店铺时，我们会请求地理位置权限。</li>
+                     </ul>
+                  </section>
+                  
+                  <section>
+                     <h4 className="font-bold text-slate-800 mb-2">2. 信息的使用</h4>
+                     <p>我们收集的信息仅用于为您提供个性化的健康服务、优化 APP 功能体验以及保障账户安全。</p>
+                  </section>
+
+                  <section>
+                     <h4 className="font-bold text-slate-800 mb-2">3. 信息共享</h4>
+                     <p>除非获得您的明确授权或法律法规要求，我们不会向任何第三方公司、组织或个人共享您的个人隐私信息。</p>
+                  </section>
+
+                  <section>
+                     <h4 className="font-bold text-slate-800 mb-2">4. 您的权利</h4>
+                     <p>您有权随时在“我的”页面查阅、修改或删除您的个人资料。如果您希望注销账号，请通过“关于APP-联系客服”进行操作。</p>
+                  </section>
+               </div>
+               <div className="p-4 border-t border-slate-100 bg-white">
+                  <button onClick={closeModal} className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold">我已了解</button>
+               </div>
             </div>
-            <div className="p-6 overflow-y-auto text-sm text-slate-600 leading-relaxed space-y-4">
-              <p>NutriMap 非常重视您的隐私。本政策旨在说明我们如何收集、使用和保护您的个人信息。</p>
-              
-              <h4 className="font-bold text-slate-800">1. 我们收集的信息</h4>
-              <ul className="list-disc pl-5 space-y-1">
-                <li><strong>健康数据：</strong>身高、体重、年龄、性别、活动水平（用于计算基础代谢率）。</li>
-                <li><strong>多媒体信息：</strong>您上传的食物照片（用于AI识别）。</li>
-                <li><strong>位置信息：</strong>（仅限商家或查找附近服务时）用于定位店铺距离。</li>
-              </ul>
-              
-              <h4 className="font-bold text-slate-800">2. 信息使用方式</h4>
-              <p>您的身体数据仅用于生成个性化的每日热量目标。上传的照片会发送至 AI 服务器进行分析，分析完成后即刻删除，不会用于其他用途。</p>
-              
-              <h4 className="font-bold text-slate-800">3. 信息安全</h4>
-              <p>我们采用行业标准的加密技术（SSL/TLS）传输您的数据。未经您的授权，我们不会将您的个人敏感信息共享给第三方。</p>
-              
-              <h4 className="font-bold text-slate-800">4. 您的权利</h4>
-              <p>您可以在“我的”页面随时修改您的身体档案，或联系客服申请注销账号及删除所有历史数据。</p>
-            </div>
-            <div className="p-4 border-t border-slate-100 bg-slate-50">
-              <button onClick={closeModal} className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl">我已了解</button>
-            </div>
-          </div>
-        </div>
+         </div>
       )}
 
       {/* About Modal */}
       {activeModal === 'ABOUT' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
-          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center animate-slide-up relative">
-            <button onClick={closeModal} className="absolute top-4 right-4 text-slate-300 hover:text-slate-500"><X size={24}/></button>
-            <div className="w-20 h-20 bg-emerald-100 rounded-3xl mx-auto flex items-center justify-center text-emerald-600 mb-4">
-               <Flame size={40} fill="currentColor" />
+         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 animate-fade-in">
+            <div className="bg-white rounded-3xl p-8 w-full max-w-sm text-center animate-fade-in-up relative">
+               <button onClick={closeModal} className="absolute top-4 right-4 text-slate-300 hover:text-slate-500">
+                  <X size={24} />
+               </button>
+               <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                  <Flame size={32} />
+               </div>
+               <h3 className="text-xl font-bold text-slate-800">NutriMap</h3>
+               <p className="text-xs text-slate-400 font-mono mb-6">Version 1.0.2 Beta</p>
+               <p className="text-slate-600 text-sm mb-6">
+                  NutriMap 是一款基于 GenAI 技术的智能营养健康助手。我们希望通过科技的力量，让健康的饮食方式变得简单、有趣且触手可及。
+               </p>
+               <div className="text-xs text-slate-300">
+                  Designed & Developed with ❤️
+               </div>
             </div>
-            <h2 className="text-xl font-bold text-slate-800">NutriMap</h2>
-            <p className="text-sm text-slate-400 font-medium mb-6">版本 v1.0.2 (Beta)</p>
-            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-              NutriMap 是您的全天候智能营养助手，结合 DeepSeek AI 技术，帮助您轻松管理饮食，发现健康美食。
-            </p>
-            <div className="text-xs text-slate-400">
-               © 2024 NutriMap Health Inc. <br/> All Rights Reserved.
-            </div>
-          </div>
-        </div>
+         </div>
       )}
 
     </div>
