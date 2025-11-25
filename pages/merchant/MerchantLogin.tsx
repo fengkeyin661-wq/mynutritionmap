@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -59,7 +60,8 @@ const MerchantLogin: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // 1. Sign Up User (传递 Role Metadata)
+      // 1. Sign Up User (传递 Metadata, 以便 Trigger 自动处理 Profile)
+      // 我们显式传入 role: 'MERCHANT'，这样 Trigger 就会把 Profile 的 Role 设为 Merchant
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -74,16 +76,21 @@ const MerchantLogin: React.FC = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-         // 2. Upsert Profile (防 Race Condition)
+         // 2. Double Check & Upsert Profile
+         // 为了保险起见 (防止 Race Condition)，我们再次 UPSERT Profile
+         // 如果 Trigger 已经创建了，这里就是 Update；如果 Trigger 慢了，这里就是 Insert
          const { error: profileError } = await supabase.from('profiles').upsert({
             id: authData.user.id,
             nickname: shopName,
             role: 'MERCHANT'
          });
          
-         if (profileError) console.warn("Profile upsert warning:", profileError);
+         if (profileError) {
+             console.warn("Profile upsert warning:", profileError);
+         }
 
          // 3. Create Merchant Record
+         // 只有当 Profile 存在 (或 trigger 成功) 且是 Merchant 时，这一步才会被 RLS 允许 (如果策略依赖 owner_id)
          const { error: merchantError } = await supabase.from('merchants').insert({
             owner_id: authData.user.id,
             name: shopName,
@@ -93,16 +100,19 @@ const MerchantLogin: React.FC = () => {
             location_lat: lat,
             location_lng: lng,
             status: 'PENDING',
-            images: { license: '', storefront: '' } // No images required initially
+            images: { license: '', storefront: '' }
          });
 
-         if (merchantError) throw merchantError;
+         if (merchantError) {
+             console.error("Merchant Insert Error:", merchantError);
+             throw new Error("店铺创建失败，请联系管理员");
+         }
 
          showToast('入驻申请提交成功！', 'success');
          if (authData.session) {
             navigate('/merchant/dashboard');
          } else {
-            showToast('请查收验证邮件', 'info');
+            showToast('注册成功，请查收验证邮件', 'info');
             setIsRegistering(false);
          }
       }

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatform } from '../../context/PlatformContext';
@@ -41,19 +42,24 @@ const ProductEdit: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!currentMerchantId) return;
+    if (!currentMerchantId) {
+        showToast('账号异常：无法获取商家ID，请重新登录', 'error');
+        return;
+    }
     if (!name.trim()) { showToast('请输入商品名称', 'error'); return; }
     if (!price.trim()) { showToast('请输入价格', 'error'); return; }
     if (!productImage) { showToast('请上传图片', 'error'); return; }
+    if (ingredients.filter(i => i.name.trim()).length === 0) { showToast('请至少填写一项配料', 'error'); return; }
 
     setIsAnalyzing(true);
     showToast('AI正在计算热量...', 'info');
 
     try {
-      const analysisResult = await analyzeNutritionFromIngredients(name, ingredients);
+      const validIngredients = ingredients.filter(i => i.name.trim());
+      const analysisResult = await analyzeNutritionFromIngredients(name, validIngredients);
       
       const newProduct: ProductDetail = {
-        id: Date.now().toString(),
+        id: '', // DB will gen_random_uuid
         merchantId: currentMerchantId,
         merchantName: merchantName || "我的店铺",
         merchantAddress: "店铺地址",
@@ -65,7 +71,7 @@ const ProductEdit: React.FC = () => {
         price: Number(price),
         description: description || analysisResult.advice,
         imageUrl: productImage,
-        ingredients: ingredients.filter(i => i.name),
+        ingredients: validIngredients,
         calories: analysisResult.detailedNutrients.calories.value,
         protein: analysisResult.detailedNutrients.protein.value,
         carbs: analysisResult.detailedNutrients.carbs.total.value,
@@ -74,13 +80,15 @@ const ProductEdit: React.FC = () => {
         detailedNutrients: analysisResult.detailedNutrients,
       };
 
-      await addProduct(newProduct);
-      showToast('提交审核成功', 'success');
-      navigate('/merchant/dashboard');
+      const success = await addProduct(newProduct);
+      if (success) {
+        showToast('提交审核成功', 'success');
+        navigate('/merchant/dashboard');
+      }
 
     } catch (error: any) {
       console.error(error);
-      showToast('提交失败', 'error');
+      showToast('提交失败: ' + error.message, 'error');
     } finally {
       setIsAnalyzing(false);
     }

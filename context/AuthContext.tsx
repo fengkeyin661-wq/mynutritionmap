@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { UserRole, UserProfile, Gender, ActivityLevel, UserFoodItem } from '../types';
 import { useToast } from './ToastContext';
@@ -118,7 +119,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error) {
         console.warn('Profile fetch warning:', error.message);
-        // 如果没有 Profile，可能是商家刚注册还没写入，或者数据不一致
       }
       
       if (data) {
@@ -207,7 +207,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const tdee = calculateTDEE(bmr, profile.activityLevel);
     const bmi = calculateBMI(profile.weight, profile.height);
 
-    // 1. Sign Up (传递 Metadata)
+    // 1. Sign Up (传递 Metadata 以便 Trigger 使用)
     const { data, error } = await supabase.auth.signUp({ 
       email, 
       password: pass,
@@ -225,8 +225,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     if (data.user) {
-      // 2. Upsert Profile (覆盖或插入)
-      // 这可以防止数据库触发器已经创建了记录而导致的主键冲突
+      // 2. UPSERT Profile (关键修复)
+      // 使用 upsert 而不是 insert，这样即使 trigger 已经创建了记录，我们也能更新详细数据而不会报错
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         nickname: profile.nickname,
@@ -241,11 +241,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (profileError) {
         console.error('Profile Upsert Error:', profileError);
-        // 如果出错，但 Auth 成功了，仍然尝试继续，也许触发器已经工作了
+        showToast('账号创建成功，但资料保存失败', 'info');
       }
 
       // 强制刷新当前状态
-      fetchProfile(data.user.id);
+      await fetchProfile(data.user.id);
       return true;
     }
     return false;

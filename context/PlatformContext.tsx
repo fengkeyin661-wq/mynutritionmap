@@ -8,8 +8,8 @@ interface PlatformContextType {
   products: ProductDetail[];
   recipes: (RecipeDetail & { category: string })[];
   
-  addProduct: (product: ProductDetail) => Promise<void>;
-  addRecipe: (recipe: RecipeDetail & { category: string }) => Promise<void>;
+  addProduct: (product: ProductDetail) => Promise<boolean>;
+  addRecipe: (recipe: RecipeDetail & { category: string }) => Promise<boolean>;
   
   updateProductStatus: (id: string, status: ProductStatus) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
@@ -34,7 +34,6 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     fetchData();
-    // 可选：设置 Realtime Subscription
     const channel = supabase.channel('public:data')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recipes' }, fetchData)
@@ -45,7 +44,7 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const fetchData = async () => {
     try {
-      // 1. Fetch Products & Merchants JOIN
+      // Products
       const { data: prodData, error: prodError } = await supabase
         .from('products')
         .select(`
@@ -54,7 +53,7 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
         `)
         .order('created_at', { ascending: false });
 
-      if (!prodError && prodData) {
+      if (prodData) {
         const mappedProducts: ProductDetail[] = prodData.map((p: any) => ({
           id: p.id,
           name: p.name,
@@ -68,7 +67,7 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
           isPromo: p.is_promo,
           merchantId: p.merchant_id,
           merchantName: p.merchants?.name || '未知商家',
-          distance: "1.2km", // 需结合地理位置计算
+          distance: "1.2km",
           status: p.status as ProductStatus,
           merchantAddress: p.merchants?.address,
           merchantRating: p.merchants?.rating || 5.0,
@@ -80,7 +79,7 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
         setProducts(mappedProducts);
       }
 
-      // 2. Fetch Recipes & Authors JOIN
+      // Recipes
       const { data: recipeData, error: recipeError } = await supabase
         .from('recipes')
         .select(`
@@ -89,11 +88,11 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
         `)
         .order('created_at', { ascending: false });
 
-      if (!recipeError && recipeData) {
+      if (recipeData) {
         const mappedRecipes: (RecipeDetail & { category: string })[] = recipeData.map((r: any) => ({
           id: r.id,
           title: r.title,
-          author: r.profiles?.nickname || 'NutriMap用户',
+          author: r.profiles?.nickname || '用户',
           likes: r.likes_count,
           imageUrl: r.image_url,
           calories: r.calories,
@@ -110,60 +109,83 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
         setRecipes(mappedRecipes);
       }
     } catch (e) {
-      console.warn("Platform data fetch failed", e);
+      console.warn("Fetch Data Error", e);
     }
   };
 
   // --- Actions ---
 
-  const addProduct = async (product: ProductDetail) => {
-    const { error } = await supabase.from('products').insert({
-      merchant_id: product.merchantId,
-      name: product.name,
-      price: product.price,
-      description: product.description,
-      image_url: product.imageUrl,
-      calories: product.calories,
-      protein: product.protein,
-      carbs: product.carbs,
-      fat: product.fat,
-      tags: product.tags,
-      ingredients: product.ingredients,
-      detailed_nutrients: product.detailedNutrients,
-      status: 'PENDING'
-    });
+  const addProduct = async (product: ProductDetail): Promise<boolean> => {
+    try {
+        if (!product.merchantId) {
+            showToast('错误：缺少商家ID', 'error');
+            return false;
+        }
 
-    if (error) {
-      console.error(error);
-      showToast('发布失败', 'error');
-    } else {
-      fetchData(); // Refresh
+        const { error } = await supabase.from('products').insert({
+          merchant_id: product.merchantId,
+          name: product.name,
+          price: product.price,
+          description: product.description,
+          image_url: product.imageUrl,
+          calories: product.calories,
+          protein: product.protein,
+          carbs: product.carbs,
+          fat: product.fat,
+          tags: product.tags,
+          ingredients: product.ingredients,
+          detailed_nutrients: product.detailedNutrients,
+          status: 'PENDING'
+        });
+
+        if (error) {
+          console.error("Supabase Write Error:", error);
+          showToast(`发布失败: ${error.message}`, 'error');
+          return false;
+        } 
+        
+        fetchData(); 
+        return true;
+    } catch (e: any) {
+        console.error("Add Product Exception:", e);
+        showToast('发布遇到未知错误', 'error');
+        return false;
     }
   };
 
-  const addRecipe = async (recipe: RecipeDetail & { category: string }) => {
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) return;
+  const addRecipe = async (recipe: RecipeDetail & { category: string }): Promise<boolean> => {
+    try {
+        const user = (await supabase.auth.getUser()).data.user;
+        if (!user) {
+            showToast('请先登录', 'error');
+            return false;
+        }
 
-    const { error } = await supabase.from('recipes').insert({
-      author_id: user.id,
-      title: recipe.title,
-      description: recipe.description,
-      image_url: recipe.imageUrl,
-      prep_time: recipe.prepTime,
-      category: recipe.category,
-      calories: recipe.calories,
-      ingredients: recipe.ingredients,
-      steps: recipe.steps,
-      detailed_nutrients: recipe.detailedNutrients,
-      status: 'APPROVED'
-    });
+        const { error } = await supabase.from('recipes').insert({
+          author_id: user.id,
+          title: recipe.title,
+          description: recipe.description,
+          image_url: recipe.imageUrl,
+          prep_time: recipe.prepTime,
+          category: recipe.category,
+          calories: recipe.calories,
+          ingredients: recipe.ingredients,
+          steps: recipe.steps,
+          detailed_nutrients: recipe.detailedNutrients,
+          status: 'APPROVED'
+        });
 
-    if (error) {
-      console.error(error);
-      showToast('发布失败', 'error');
-    } else {
-      fetchData();
+        if (error) {
+          console.error("Supabase Recipe Error:", error);
+          showToast(`发布失败: ${error.message}`, 'error');
+          return false;
+        } 
+        
+        fetchData();
+        return true;
+    } catch (e) {
+        showToast('发布食谱失败', 'error');
+        return false;
     }
   };
 
