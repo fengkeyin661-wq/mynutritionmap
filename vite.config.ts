@@ -1,3 +1,4 @@
+
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -13,6 +14,8 @@ export default defineConfig(({ mode }) => {
       // Properly inject the API key from environment variables into the code
       // This is required for @google/genai to work in the browser environment
       'process.env.API_KEY': JSON.stringify(env.API_KEY),
+      // Define NODE_ENV to prevent issues with libraries that check it
+      'process.env.NODE_ENV': JSON.stringify(mode),
       // Polyfill process.env to prevent crashes in libraries accessing it
       'process.env': {}
     }
