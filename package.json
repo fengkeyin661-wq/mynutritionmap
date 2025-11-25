@@ -1,3 +1,4 @@
+
 {
   "name": "nutrimap",
   "private": true,
@@ -14,7 +15,8 @@
     "react-router-dom": "^6.22.3",
     "lucide-react": "^0.363.0",
     "recharts": "^2.12.3",
-    "@supabase/supabase-js": "^2.39.8"
+    "@supabase/supabase-js": "^2.39.8",
+    "@google/genai": "^0.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",
