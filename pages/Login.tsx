@@ -1,12 +1,12 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { UserProfile, Gender, ActivityLevel } from '../types';
 import { 
-  Camera, ChevronRight, ArrowLeft, CheckCircle, 
-  User, Lock, Mail, Loader2, Leaf
+  ChevronRight, ArrowLeft, CheckCircle, 
+  Lock, Mail, Loader2, Leaf
 } from 'lucide-react';
 
 type ViewState = 'LANDING' | 'LOGIN' | 'REGISTER';
@@ -15,7 +15,6 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login, register } = useAuth();
   const { showToast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // View Control
   const [view, setView] = useState<ViewState>('LANDING');
@@ -27,7 +26,6 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const [avatar, setAvatar] = useState<string>('');
   const [nickname, setNickname] = useState('');
   const [gender, setGender] = useState<Gender>('MALE');
   const [age, setAge] = useState<string>('25');
@@ -36,17 +34,6 @@ const Login: React.FC = () => {
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('MODERATE');
 
   // --- Handlers ---
-
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -77,7 +64,7 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     const profile: UserProfile = {
       nickname,
-      avatarUrl: avatar,
+      avatarUrl: '', // No avatar upload during registration
       gender,
       age: parseInt(age) || 25,
       height: parseInt(height) || 170,
@@ -211,17 +198,9 @@ const Login: React.FC = () => {
         {/* STEP 1: ACCOUNT & IDENTITY */}
         {regStep === 1 && (
           <div className="animate-fade-in space-y-6">
-             <div className="text-center">
+             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">建立账号</h2>
                 <p className="text-slate-500 text-sm">请提供登录信息和您的昵称</p>
-             </div>
-
-             <div className="flex flex-col items-center">
-                <div onClick={() => fileInputRef.current?.click()} className="relative w-24 h-24 rounded-full bg-white border-4 border-emerald-50 shadow-lg flex items-center justify-center cursor-pointer group mb-6">
-                  {avatar ? <img src={avatar} className="w-full h-full object-cover rounded-full" /> : <User size={32} className="text-slate-300" />}
-                  <div className="absolute bottom-0 right-0 bg-emerald-500 text-white p-1.5 rounded-full"><Camera size={14} /></div>
-                </div>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
              </div>
 
              <div className="space-y-4">
