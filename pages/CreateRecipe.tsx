@@ -1,25 +1,19 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Camera, Clock, Plus, Trash2, 
-  ChefHat, AlignLeft, Image as ImageIcon, Save, Loader2
+  ChefHat, AlignLeft, Image as ImageIcon, Loader2, Save
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { usePlatform } from '../context/PlatformContext';
 import { useAuth } from '../context/AuthContext';
-import { RecipeDetail, Ingredient } from '../types';
+import { RecipeDetail } from '../types';
 import { uploadImage } from '../lib/supabase';
 import { analyzeNutritionFromIngredients } from '../services/aiService';
 
 interface IngredientInput {
   name: string;
   amount: string;
-}
-
-interface StepInput {
-  description: string;
-  image?: string;
 }
 
 const CreateRecipe: React.FC = () => {
@@ -29,25 +23,16 @@ const CreateRecipe: React.FC = () => {
   const { userProfile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Form States
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [prepTime, setPrepTime] = useState('');
-  
-  const [ingredients, setIngredients] = useState<IngredientInput[]>([
-    { name: '', amount: '' },
-    { name: '', amount: '' }
-  ]);
-  
-  const [steps, setSteps] = useState<StepInput[]>([
-    { description: '' }
-  ]);
+  const [ingredients, setIngredients] = useState<IngredientInput[]>([{ name: '', amount: '' }, { name: '', amount: '' }]);
+  const [steps, setSteps] = useState<{description: string}[]>([{ description: '' }]);
 
-  // Handlers
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -57,53 +42,22 @@ const CreateRecipe: React.FC = () => {
       
       if (url) {
         setCoverImage(url);
+        showToast('图片上传成功', 'success');
       } else {
         showToast('图片上传失败', 'error');
       }
     }
   };
 
-  const handleAddIngredient = () => {
-    setIngredients([...ingredients, { name: '', amount: '' }]);
-  };
-
-  const handleRemoveIngredient = (index: number) => {
-    const newIngredients = ingredients.filter((_, i) => i !== index);
-    setIngredients(newIngredients);
-  };
-
-  const handleIngredientChange = (index: number, field: keyof IngredientInput, value: string) => {
-    const newIngredients = [...ingredients];
-    newIngredients[index][field] = value;
-    setIngredients(newIngredients);
-  };
-
-  const handleAddStep = () => {
-    setSteps([...steps, { description: '' }]);
-  };
-
-  const handleRemoveStep = (index: number) => {
-    const newSteps = steps.filter((_, i) => i !== index);
-    setSteps(newSteps);
-  };
-
-  const handleStepChange = (index: number, value: string) => {
-    const newSteps = [...steps];
-    newSteps[index].description = value;
-    setSteps(newSteps);
-  };
-
   const handleSubmit = async () => {
-    // Basic Validation
-    if (!title.trim()) { showToast('请填写食谱标题', 'error'); return; }
-    if (!coverImage) { showToast('请上传食谱封面图', 'error'); return; }
-    if (ingredients.some(i => !i.name.trim())) { showToast('请完善食材信息', 'error'); return; }
+    if (!title.trim()) { showToast('请填写标题', 'error'); return; }
+    if (!coverImage) { showToast('请上传封面图', 'error'); return; }
+    if (ingredients.some(i => !i.name)) { showToast('请完善食材', 'error'); return; }
 
     setIsAnalyzing(true);
-    showToast('AI正在分析营养成分...', 'info');
+    showToast('AI正在分析营养...', 'info');
 
     try {
-      // Real AI Analysis
       const validIngredients = ingredients.filter(i => i.name.trim() !== '');
       const analysis = await analyzeNutritionFromIngredients(title, validIngredients);
 
@@ -122,195 +76,103 @@ const CreateRecipe: React.FC = () => {
         ingredients: validIngredients,
         steps: steps.map((s, idx) => ({ step: idx + 1, description: s.description })),
         detailedNutrients: analysis.detailedNutrients,
-        category: '全部' // 可以添加分类选择功能
+        category: '全部'
       };
 
       await addRecipe(newRecipe);
-
       showToast('发布成功！', 'success');
-      setTimeout(() => {
-        navigate('/community');
-      }, 1500);
+      setTimeout(() => navigate('/community'), 1000);
       
     } catch (error) {
       console.error(error);
-      showToast('发布失败，请重试', 'error');
+      showToast('发布失败', 'error');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
   return (
-    <div className="bg-white min-h-screen pb-24 relative">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-slate-100">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="font-bold text-lg text-slate-800">发布食谱</h1>
+    <div className="h-full flex flex-col bg-white">
+      <div className="px-4 py-3 pt-safe border-b border-slate-100 flex items-center justify-between sticky top-0 z-10 bg-white">
+        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-600"><ArrowLeft size={20} /></button>
+        <h1 className="font-bold text-slate-800">发布食谱</h1>
         <button 
           onClick={handleSubmit}
           disabled={isAnalyzing || isUploading}
-          className="text-sm font-bold text-white bg-emerald-600 px-4 py-1.5 rounded-full shadow-lg shadow-emerald-200 active:scale-95 transition-transform flex items-center gap-2"
+          className="px-4 py-1.5 bg-emerald-600 text-white rounded-full text-sm font-bold flex items-center gap-1 shadow-sm disabled:opacity-50"
         >
           {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : '发布'}
         </button>
       </div>
 
-      <div className="p-4 space-y-6">
-        {/* Cover Image Upload */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Image Upload */}
         <div 
           onClick={() => !isUploading && fileInputRef.current?.click()}
-          className={`aspect-video w-full rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group transition-colors ${!coverImage ? 'hover:border-emerald-400 hover:bg-emerald-50' : ''}`}
+          className={`aspect-video w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden transition-all ${!coverImage ? 'border-slate-200 bg-slate-50' : 'border-transparent'}`}
         >
           {isUploading ? (
-            <div className="flex flex-col items-center text-emerald-500">
-               <Loader2 size={32} className="animate-spin mb-2" />
-               <span className="text-xs font-bold">上传中...</span>
-            </div>
+             <div className="flex flex-col items-center text-emerald-500"><Loader2 className="animate-spin mb-2" /><span className="text-xs font-bold">上传中...</span></div>
           ) : coverImage ? (
-            <>
-              <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-full font-bold flex items-center gap-2">
-                   <Camera size={18} /> 更换封面
-                </div>
-              </div>
-            </>
+             <>
+               <img src={coverImage} className="w-full h-full object-cover" />
+               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                 <div className="text-white font-bold flex items-center gap-2"><Camera size={20} /> 更换封面</div>
+               </div>
+             </>
           ) : (
-            <>
-              <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-3">
-                <ImageIcon size={32} />
-              </div>
-              <p className="text-slate-500 font-medium">点击上传成品图</p>
-              <p className="text-slate-400 text-xs mt-1">诱人的封面是成功的开始</p>
-            </>
+             <div className="flex flex-col items-center text-slate-400">
+               <ImageIcon size={32} className="mb-2" />
+               <span className="text-sm font-bold">点击上传成品图</span>
+             </div>
           )}
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
         </div>
 
         {/* Basic Info */}
         <div className="space-y-4">
-          <div>
-            <input 
-              type="text" 
-              placeholder="填写食谱标题，如：低脂牛油果意面" 
-              className="w-full text-xl font-bold placeholder:text-slate-300 border-none outline-none bg-transparent"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          
-          <div className="relative">
-            <textarea 
-              placeholder="说说这道菜的灵感、口感或适合的场景..." 
-              className="w-full h-24 p-4 bg-slate-50 rounded-xl border border-slate-100 resize-none outline-none focus:border-emerald-500 text-sm"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 w-max">
-            <Clock size={18} className="text-slate-400" />
-            <span className="text-sm font-bold text-slate-600">制作时长</span>
-            <input 
-              type="number" 
-              placeholder="15" 
-              className="w-12 bg-white rounded-md text-center py-1 text-sm font-bold border border-slate-200 focus:border-emerald-500 outline-none"
-              value={prepTime}
-              onChange={(e) => setPrepTime(e.target.value)}
-            />
-            <span className="text-sm text-slate-400">分钟</span>
-          </div>
+           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="食谱标题 (如: 低脂牛油果意面)" className="w-full text-xl font-bold placeholder:text-slate-300 outline-none border-b border-slate-100 pb-2" />
+           <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="分享你的烹饪灵感..." className="w-full h-24 resize-none outline-none text-slate-600 text-sm leading-relaxed" />
+           
+           <div className="flex items-center gap-3 bg-slate-50 w-max px-3 py-2 rounded-xl">
+              <Clock size={16} className="text-slate-400" />
+              <input type="number" value={prepTime} onChange={e => setPrepTime(e.target.value)} placeholder="15" className="w-8 bg-transparent text-center font-bold outline-none" />
+              <span className="text-xs text-slate-500">分钟</span>
+           </div>
         </div>
-
-        <hr className="border-slate-100" />
 
         {/* Ingredients */}
         <div>
-          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <ChefHat size={20} className="text-emerald-500" /> 所需食材
-          </h3>
-          <div className="space-y-3">
-            {ingredients.map((ing, idx) => (
-              <div key={idx} className="flex gap-2 items-center animate-fade-in">
-                <div className="grid grid-cols-2 gap-2 flex-1">
-                  <input 
-                    type="text" 
-                    placeholder="食材名称 (如: 鸡胸肉)" 
-                    className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm outline-none focus:border-emerald-500 transition-colors"
-                    value={ing.name}
-                    onChange={(e) => handleIngredientChange(idx, 'name', e.target.value)}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="用量 (默认g)" 
-                    className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm outline-none focus:border-emerald-500 transition-colors"
-                    value={ing.amount}
-                    onChange={(e) => handleIngredientChange(idx, 'amount', e.target.value)}
-                  />
+           <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><ChefHat size={18} className="text-emerald-500" /> 食材清单</h3>
+           <div className="space-y-3">
+              {ingredients.map((ing, idx) => (
+                <div key={idx} className="flex gap-3">
+                   <input value={ing.name} onChange={e => { const n = [...ingredients]; n[idx].name = e.target.value; setIngredients(n); }} placeholder="食材名" className="flex-1 bg-slate-50 p-3 rounded-xl text-sm outline-none" />
+                   <input value={ing.amount} onChange={e => { const n = [...ingredients]; n[idx].amount = e.target.value; setIngredients(n); }} placeholder="用量" className="w-24 bg-slate-50 p-3 rounded-xl text-sm outline-none text-center" />
+                   {ingredients.length > 1 && <button onClick={() => setIngredients(ingredients.filter((_, i) => i !== idx))} className="text-slate-300 hover:text-red-500"><Trash2 size={18} /></button>}
                 </div>
-                {ingredients.length > 1 && (
-                  <button onClick={() => handleRemoveIngredient(idx)} className="p-2 text-slate-300 hover:text-red-500">
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            ))}
-            <button 
-              onClick={handleAddIngredient}
-              className="w-full py-3 border border-dashed border-emerald-300 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 mt-2 hover:bg-emerald-100 transition-colors"
-            >
-              <Plus size={16} /> 添加食材
-            </button>
-          </div>
+              ))}
+              <button onClick={() => setIngredients([...ingredients, { name: '', amount: '' }])} className="w-full py-3 border border-dashed border-emerald-200 text-emerald-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-emerald-50">
+                <Plus size={16} /> 添加食材
+              </button>
+           </div>
         </div>
-
-        <hr className="border-slate-100" />
 
         {/* Steps */}
         <div>
-          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <AlignLeft size={20} className="text-emerald-500" /> 制作步骤
-          </h3>
-          <div className="space-y-6">
-            {steps.map((step, idx) => (
-              <div key={idx} className="flex gap-4 animate-fade-in">
-                <div className="shrink-0 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-md shadow-slate-200">
-                  {idx + 1}
-                </div>
-                <div className="flex-1 space-y-3">
-                  <textarea 
-                    placeholder={`请输入步骤 ${idx + 1} 的具体操作...`}
-                    className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm outline-none focus:border-emerald-500 transition-colors resize-none h-28 leading-relaxed"
-                    value={step.description}
-                    onChange={(e) => handleStepChange(idx, e.target.value)}
-                  />
-                  {/* Step Image Placeholder (Optional functionality) */}
-                  <div className="flex justify-between items-center">
-                    <button className="text-xs text-slate-400 flex items-center gap-1 hover:text-emerald-600 transition-colors bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                      <Camera size={14} /> 添加步骤图
-                    </button>
-                    {steps.length > 1 && (
-                      <button onClick={() => handleRemoveStep(idx)} className="text-xs text-slate-400 hover:text-red-500 px-2">
-                        删除步骤
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-             <button 
-              onClick={handleAddStep}
-              className="w-full py-3 border border-dashed border-emerald-300 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-bold flex items-center justify-center gap-2 mt-2 hover:bg-emerald-100 transition-colors"
-            >
-              <Plus size={16} /> 添加步骤
-            </button>
-          </div>
+           <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2"><AlignLeft size={18} className="text-emerald-500" /> 制作步骤</h3>
+           <div className="space-y-4">
+              {steps.map((step, idx) => (
+                 <div key={idx} className="flex gap-3">
+                    <div className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-1">{idx + 1}</div>
+                    <textarea value={step.description} onChange={e => { const n = [...steps]; n[idx].description = e.target.value; setSteps(n); }} placeholder="描述步骤..." className="flex-1 bg-slate-50 p-3 rounded-xl text-sm outline-none h-20 resize-none" />
+                 </div>
+              ))}
+              <button onClick={() => setSteps([...steps, { description: '' }])} className="w-full py-3 border border-dashed border-slate-200 text-slate-500 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-50">
+                <Plus size={16} /> 添加步骤
+              </button>
+           </div>
         </div>
-
-        {/* Safe area for bottom spacing */}
-        <div className="h-8"></div>
       </div>
     </div>
   );

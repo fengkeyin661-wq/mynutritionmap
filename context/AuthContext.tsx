@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { UserRole, UserProfile, Gender, ActivityLevel, UserFoodItem } from '../types';
 import { useToast } from './ToastContext';
@@ -118,23 +117,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (error) {
-        // 如果没有找到 profile (可能是新用户延迟)，暂不报错
         console.warn('Profile fetch warning:', error.message);
+        // 如果没有 Profile，可能是商家刚注册还没写入，或者数据不一致
       }
       
       if (data) {
-        // Map DB snake_case to Frontend camelCase
         const profile: UserProfile = {
-          nickname: data.nickname,
+          nickname: data.nickname || '用户',
           avatarUrl: data.avatar_url,
-          gender: data.gender as Gender,
-          age: data.age,
-          height: data.height,
-          weight: data.weight,
-          activityLevel: data.activity_level as ActivityLevel,
-          bmr: data.bmr,
-          tdee: data.tdee,
-          bmi: data.bmi
+          gender: (data.gender as Gender) || 'MALE',
+          age: data.age || 25,
+          height: data.height || 170,
+          weight: data.weight || 65,
+          activityLevel: (data.activity_level as ActivityLevel) || 'MODERATE',
+          bmr: data.bmr || 0,
+          tdee: data.tdee || 0,
+          bmi: data.bmi || 0
         };
         
         setUserProfile(profile);
@@ -209,14 +207,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const tdee = calculateTDEE(bmr, profile.activityLevel);
     const bmi = calculateBMI(profile.weight, profile.height);
 
+    // 1. Sign Up (传递 Metadata)
     const { data, error } = await supabase.auth.signUp({ 
       email, 
       password: pass,
       options: {
         data: {
           nickname: profile.nickname,
-          avatar_url: profile.avatarUrl,
-          role: 'USER' // Explicitly set role for triggers
+          role: 'USER'
         }
       }
     });
@@ -227,29 +225,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     if (data.user) {
-      // Create or Update Profile Record (Using Upsert for safety against triggers)
+      // 2. Upsert Profile (覆盖或插入)
+      // 这可以防止数据库触发器已经创建了记录而导致的主键冲突
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         nickname: profile.nickname,
-        avatar_url: profile.avatarUrl,
+        role: 'USER',
         gender: profile.gender,
         age: profile.age,
         height: profile.height,
         weight: profile.weight,
         activity_level: profile.activityLevel,
-        bmr, tdee, bmi,
-        role: 'USER'
+        bmr, tdee, bmi
       });
       
       if (profileError) {
-        console.error('Profile Creation Error:', profileError);
-        // Don't show error to user if it's just a duplicate key warning from trigger, they are registered
+        console.error('Profile Upsert Error:', profileError);
+        // 如果出错，但 Auth 成功了，仍然尝试继续，也许触发器已经工作了
       }
 
-      setTimeout(() => {
-        if (data.user) fetchProfile(data.user.id);
-      }, 500);
-      
+      // 强制刷新当前状态
+      fetchProfile(data.user.id);
       return true;
     }
     return false;
@@ -291,7 +287,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Favorites
   const toggleFavorite = async (id: string, type: 'RECIPE' | 'PRODUCT') => {
     const user = (await supabase.auth.getUser()).data.user;
-    if (!user) return;
+    if (!user) {
+        showToast('请先登录', 'info');
+        return;
+    }
 
     try {
       const { data } = await supabase.from('favorites')

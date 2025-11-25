@@ -1,84 +1,46 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>NutriMap - 智能营养助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-      body {
-        font-family: 'Inter', "PingFang SC", "Microsoft YaHei", sans-serif;
-        background-color: #F8FAFC; /* Slate 50 */
-        -webkit-tap-highlight-color: transparent;
-      }
-      
-      /* Full height structure for 100dvh support */
-      html, body, #root {
+      /* 核心：锁定全局滚动，由 React 容器内部接管 */
+      html, body {
         height: 100%;
         width: 100%;
-        overflow: hidden; /* Prevent body scroll, handle in App container */
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        background-color: #F8FAFC; /* Slate 50 */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation; /* 优化点击响应 */
       }
 
-      /* Hide scrollbar */
+      #root {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* 隐藏滚动条但保留功能 */
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       
-      /* Mobile Safe Area Logic for Navigation */
-      .pb-safe-nav-offset {
-        padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-      }
-      /* Ensure inputs don't zoom on iOS (must be >= 16px) */
-      input, textarea, select {
-        font-size: 16px !important;
-      }
-
-      /* Animations */
-      @keyframes fadeInDown {
-        from { opacity: 0; transform: translate3d(0, -20px, 0); }
-        to { opacity: 1; transform: translate3d(0, 0, 0); }
-      }
-      .animate-fade-in-down { animation: fadeInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      /* iOS 安全区域适配 */
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .pt-safe { padding-top: env(safe-area-inset-top); }
       
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translate3d(0, 20px, 0); }
-        to { opacity: 1; transform: translate3d(0, 0, 0); }
-      }
-      .animate-fade-in-up { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
+      /* 动画类 */
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-
-      @keyframes slideUp {
-        from { transform: translateY(100%); }
-        to { transform: translateY(0); }
-      }
-      .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-      /* Scanning Laser Animation */
-      @keyframes scan {
-        0% { top: 0%; opacity: 0; }
-        15% { opacity: 1; }
-        85% { opacity: 1; }
-        100% { top: 100%; opacity: 0; }
-      }
-      .animate-scan {
-        animation: scan 2.5s linear infinite;
-        background: linear-gradient(to bottom, transparent, rgba(16, 185, 129, 0.5), transparent);
-        box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
-      }
-
-      /* Pulse for recording */
-      @keyframes pulse-ring {
-        0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-        100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-      }
-      .animate-pulse-ring { animation: pulse-ring 2s infinite; }
-
-      /* Safe Area padding utility */
-      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      
+      @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
   <script type="importmap">
 {
