@@ -1,6 +1,5 @@
-
 import React, { useEffect } from 'react';
-import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
+import { CircleCheck, CircleAlert, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -26,8 +25,8 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'success', isVisib
   return (
     <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[100] animate-fade-in-down">
       <div className="bg-white/95 backdrop-blur-sm rounded-full shadow-xl shadow-slate-200 border border-slate-100 pl-4 pr-5 py-3 flex items-center gap-3 min-w-[280px] max-w-[90vw]">
-        {type === 'success' && <CheckCircle className="text-emerald-500 shrink-0" size={20} strokeWidth={2.5} />}
-        {type === 'error' && <AlertCircle className="text-red-500 shrink-0" size={20} strokeWidth={2.5} />}
+        {type === 'success' && <CircleCheck className="text-emerald-500 shrink-0" size={20} strokeWidth={2.5} />}
+        {type === 'error' && <CircleAlert className="text-red-500 shrink-0" size={20} strokeWidth={2.5} />}
         {type === 'info' && <Info className="text-blue-500 shrink-0" size={20} strokeWidth={2.5} />}
         
         <span className="text-slate-700 font-bold text-sm flex-1">{message}</span>

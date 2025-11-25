@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { UserProfile, Gender, ActivityLevel } from '../types';
 import { 
-  Camera, ChevronRight, ArrowLeft, CheckCircle, 
+  Camera, ChevronRight, ArrowLeft, CircleCheck, 
   User, Lock, Mail, Loader2, Leaf
 } from 'lucide-react';
 
@@ -272,7 +272,7 @@ const Login: React.FC = () => {
              <div className="space-y-3">
                 {[{ val: 'SEDENTARY', label: '久坐不动', desc: '办公室工作，几乎不运动' },{ val: 'LIGHT', label: '轻度活动', desc: '每周运动 1-3 天' },{ val: 'MODERATE', label: '中度活动', desc: '每周运动 3-5 天' },{ val: 'ACTIVE', label: '高度活动', desc: '每周运动 6-7 天' },{ val: 'VERY_ACTIVE', label: '极度活动', desc: '体力劳动或专业训练' }].map((option) => (
                   <button key={option.val} onClick={() => setActivityLevel(option.val as ActivityLevel)} className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${activityLevel === option.val ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 bg-white'}`}>
-                    <div className="flex justify-between items-center"><div><div className={`font-bold ${activityLevel === option.val ? 'text-emerald-700' : 'text-slate-700'}`}>{option.label}</div><div className="text-xs text-slate-400 mt-1">{option.desc}</div></div>{activityLevel === option.val && <CheckCircle size={20} className="text-emerald-500" />}</div>
+                    <div className="flex justify-between items-center"><div><div className={`font-bold ${activityLevel === option.val ? 'text-emerald-700' : 'text-slate-700'}`}>{option.label}</div><div className="text-xs text-slate-400 mt-1">{option.desc}</div></div>{activityLevel === option.val && <CircleCheck size={20} className="text-emerald-500" />}</div>
                   </button>
                 ))}
              </div>

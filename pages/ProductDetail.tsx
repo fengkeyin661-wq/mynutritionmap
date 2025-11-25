@@ -1,18 +1,17 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Flame, MapPin, Store, 
-  ShoppingCart, AlertCircle, ShoppingBag, Star, Info,
-  ChefHat, Activity, PlusCircle, Heart
+  ShoppingCart, CircleAlert, ShoppingBag, Star, Info,
+  ChefHat, Activity, CirclePlus, Heart
 } from 'lucide-react';
-import { ProductDetail as ProductDetailType } from '../types';
+import { ProductDetail } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
 import { NutrientBar, MicroNutrientGrid } from '../components/NutrientVisualizations';
 
 // Mock Data Generator for the specific Product ID
-const getMockProductDetail = (id: string): ProductDetailType => {
+const getMockProductDetail = (id: string): ProductDetail => {
   return {
     id,
     name: "低脂鸡胸肉轻食餐盒",
@@ -87,7 +86,7 @@ const getMockProductDetail = (id: string): ProductDetailType => {
   };
 };
 
-const ProductDetail: React.FC = () => {
+const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addLog } = useDailyLog();
@@ -232,7 +231,7 @@ const ProductDetail: React.FC = () => {
         {activeTab === 'nutrition' && (
           <div className="space-y-6 animate-fade-in pb-8">
              <div className="bg-amber-50 text-amber-700 p-3 rounded-xl flex gap-2 text-xs items-start">
-               <AlertCircle size={16} className="shrink-0 mt-0.5" />
+               <CircleAlert size={16} className="shrink-0 mt-0.5" />
                <p>营养数据仅供参考，基于标准配方估算。实际数据可能因批次不同略有差异。NRV%参考中国成人每日推荐摄入量。</p>
             </div>
 
@@ -310,7 +309,7 @@ const ProductDetail: React.FC = () => {
                onClick={handleAddToLog}
                className="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
-               <PlusCircle size={18} /> 加入食谱
+               <CirclePlus size={18} /> 加入食谱
             </button>
             <button className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-200">
                立即购买
@@ -323,4 +322,4 @@ const ProductDetail: React.FC = () => {
   );
 };
 
-export default ProductDetail;
+export default ProductDetailPage;

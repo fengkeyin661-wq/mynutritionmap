@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { 
-  Store, ArrowLeft, CheckCircle, Phone, Clock, 
+  Store, ArrowLeft, CircleCheck, Phone, Clock, 
   MapPin, FileText, Camera, Image as ImageIcon, Loader2, Mail, Lock
 } from 'lucide-react';
 
@@ -150,7 +150,7 @@ const MerchantLogin: React.FC = () => {
       <div onClick={() => inputRef.current?.click()} className={`relative h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden ${value ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
         {value ? <img src={value} className="w-full h-full object-cover opacity-80" /> : <div className="text-center p-2"><Camera size={18} className="mx-auto text-slate-400 mb-1"/><span className="text-[10px] text-slate-500 font-bold block">{label}</span></div>}
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onChange} />
-        {value && <div className="absolute bottom-1 right-1 bg-emerald-500 text-white rounded-full p-0.5"><CheckCircle size={10} /></div>}
+        {value && <div className="absolute bottom-1 right-1 bg-emerald-500 text-white rounded-full p-0.5"><CircleCheck size={10} /></div>}
       </div>
     );
   };
