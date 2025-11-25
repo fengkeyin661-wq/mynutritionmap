@@ -74,7 +74,7 @@ const Merchants: React.FC = () => {
   };
 
   return (
-    <div className="pb-safe-nav pt-4 min-h-screen bg-slate-50 relative">
+    <div className="pt-4 min-h-screen bg-slate-50 relative">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur-xl px-4 pb-2 pt-2 border-b border-slate-100/50">
         <h1 className="text-2xl font-extrabold text-slate-800 mb-4 tracking-tight">健康优选</h1>
@@ -119,8 +119,8 @@ const Merchants: React.FC = () => {
         </div>
       </div>
 
-      {/* Product List */}
-      <div className="px-4 mt-4 pb-16">
+      {/* Product List - Increased padding bottom to clear the banner */}
+      <div className="px-4 mt-4 pb-48">
          {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                <ShoppingBag size={48} className="mb-4 opacity-20" />

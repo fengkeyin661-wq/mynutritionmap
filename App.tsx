@@ -28,32 +28,35 @@ const App: React.FC = () => {
           <DailyLogProvider>
             <Router>
               {/* Main App Container - Mobile Optimized */}
-              <div className="w-full md:max-w-[480px] mx-auto min-h-[100dvh] bg-slate-50 relative shadow-2xl flex flex-col">
+              <div className="w-full md:max-w-[480px] mx-auto h-[100dvh] bg-slate-50 relative shadow-2xl flex flex-col overflow-hidden">
                 
                 {/* Scrollable Content Area */}
-                <div className="flex-1 w-full overflow-y-auto no-scrollbar pb-24">
-                  <Routes>
-                    {/* Public/User Routes */}
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/scan" element={<Analysis />} />
-                    <Route path="/community" element={<Community />} />
-                    <Route path="/community/create" element={<CreateRecipe />} />
-                    <Route path="/community/recipe/:id" element={<RecipeDetail />} />
-                    <Route path="/merchants" element={<Merchants />} />
-                    <Route path="/merchants/product/:id" element={<ProductDetail />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/login" element={<Login />} />
-                    
-                    {/* Merchant Routes */}
-                    <Route path="/merchant/login" element={<MerchantLogin />} />
-                    <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
-                    <Route path="/merchant/edit/:id" element={<ProductEdit />} />
-                    
-                    {/* Admin Routes */}
-                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <div className="flex-1 w-full overflow-y-auto no-scrollbar relative">
+                  {/* Inner wrapper with safe padding at bottom to prevent content cutoff behind nav/bars */}
+                  <div className="min-h-full pb-32">
+                    <Routes>
+                      {/* Public/User Routes */}
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/scan" element={<Analysis />} />
+                      <Route path="/community" element={<Community />} />
+                      <Route path="/community/create" element={<CreateRecipe />} />
+                      <Route path="/community/recipe/:id" element={<RecipeDetail />} />
+                      <Route path="/merchants" element={<Merchants />} />
+                      <Route path="/merchants/product/:id" element={<ProductDetail />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/login" element={<Login />} />
+                      
+                      {/* Merchant Routes */}
+                      <Route path="/merchant/login" element={<MerchantLogin />} />
+                      <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
+                      <Route path="/merchant/edit/:id" element={<ProductEdit />} />
+                      
+                      {/* Admin Routes */}
+                      <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </div>
                 </div>
 
                 {/* Navigation (Fixed relative to viewport but centered via CSS in component) */}

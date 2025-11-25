@@ -1,13 +1,28 @@
 
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Scan, Store, Users, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navigation: React.FC = () => {
   const { role } = useAuth();
+  const location = useLocation();
   
   if (role !== 'USER') return null;
+
+  // Define paths where the main navigation should be hidden
+  const hiddenPaths = [
+    '/login', 
+    '/merchant', 
+    '/community/create', 
+    '/community/recipe/', 
+    '/merchants/product/',
+    '/scan'
+  ];
+
+  const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path));
+
+  if (shouldHide) return null;
 
   const navItems = [
     { to: "/", icon: Home, label: "首页" },

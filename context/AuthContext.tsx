@@ -117,7 +117,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // 如果没有找到 profile (可能是新用户延迟)，暂不报错，让 UI 显示默认或 loading
+        console.warn('Profile fetch warning:', error.message);
+      }
+      
       if (data) {
         // Map DB snake_case to Frontend camelCase
         const profile: UserProfile = {
@@ -174,7 +178,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         calories: item.calories,
         detailedNutrients: item.detailed_nutrients,
         timestamp: new Date(item.created_at).getTime(),
-        // 简单映射，实际上数据库没存这几个冗余字段，可以从 detailedNutrients 拿
+        // 简单映射
         protein: item.detailed_nutrients?.protein?.value || 0,
         carbs: item.detailed_nutrients?.carbs?.total?.value || 0,
         fat: item.detailed_nutrients?.fat?.total?.value || 0
@@ -198,15 +202,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const tdee = calculateTDEE(bmr, profile.activityLevel);
     const bmi = calculateBMI(profile.weight, profile.height);
 
-    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password: pass,
+      options: {
+        data: {
+          nickname: profile.nickname,
+          avatar_url: profile.avatarUrl
+        }
+      }
+    });
+
     if (error) {
       showToast(error.message || '注册失败', 'error');
       return false;
     }
 
     if (data.user) {
-      // Create Profile Record
-      const { error: profileError } = await supabase.from('profiles').insert({
+      // Create or Update Profile Record (Using Upsert for safety)
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         nickname: profile.nickname,
         avatar_url: profile.avatarUrl,
@@ -220,11 +234,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
       
       if (profileError) {
-        console.error(profileError);
-        showToast('账号创建成功但资料保存失败', 'error');
-      } else {
-        return true;
+        console.error('Profile Creation Error:', profileError);
+        showToast('账号创建成功但资料保存异常，请稍后重试', 'info');
+        // We don't return false here because the Auth account was created
       }
+
+      // Explicitly fetch profile to ensure state sync
+      // Wait a small moment for DB propagation if needed
+      setTimeout(() => {
+        if (data.user) fetchProfile(data.user.id);
+      }, 500);
+      
+      return true;
     }
     return false;
   };
@@ -313,7 +334,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }).select().single();
 
     if (!error && data) {
-       // Reload logic or optimistic update
        loadFoodLibrary(user.id);
     }
   };
@@ -324,10 +344,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     showToast('已移除', 'info');
   };
 
-  // 这里的 loginAs 主要是为了兼容旧代码结构，实际上应该通过真实的 login 替代
-  // 在此我们保留它用于 MerchantLogin 页面的注册后自动切换逻辑
   const loginAs = (targetRole: UserRole, merchantId?: string, mName?: string) => {
-    // 这是一个 legacy wrapper，实际逻辑已在 fetchProfile 中处理
+    // Legacy support, mostly handled by fetching profile now
     setRole(targetRole);
     if(merchantId) setCurrentMerchantId(merchantId);
     if(mName) setMerchantName(mName);

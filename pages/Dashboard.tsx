@@ -95,7 +95,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="pb-safe-nav px-5 pt-8 space-y-8 bg-slate-50/50">
+    <div className="px-5 pt-8 space-y-8 bg-slate-50/50">
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>

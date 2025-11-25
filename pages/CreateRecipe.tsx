@@ -3,12 +3,14 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Camera, Clock, Plus, Trash2, 
-  ChefHat, AlignLeft, Image as ImageIcon, Save 
+  ChefHat, AlignLeft, Image as ImageIcon, Save, Loader2
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { usePlatform } from '../context/PlatformContext';
 import { useAuth } from '../context/AuthContext';
-import { RecipeDetail, DetailedNutrients, CookingStep, Ingredient } from '../types';
+import { RecipeDetail, Ingredient } from '../types';
+import { uploadImage } from '../lib/supabase';
+import { analyzeNutritionFromIngredients } from '../services/aiService';
 
 interface IngredientInput {
   name: string;
@@ -29,6 +31,9 @@ const CreateRecipe: React.FC = () => {
 
   // Form States
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [prepTime, setPrepTime] = useState('');
@@ -43,14 +48,18 @@ const CreateRecipe: React.FC = () => {
   ]);
 
   // Handlers
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setIsUploading(true);
+      const url = await uploadImage(file);
+      setIsUploading(false);
+      
+      if (url) {
+        setCoverImage(url);
+      } else {
+        showToast('图片上传失败', 'error');
+      }
     }
   };
 
@@ -84,70 +93,51 @@ const CreateRecipe: React.FC = () => {
     setSteps(newSteps);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Basic Validation
-    if (!title.trim()) {
-      showToast('请填写食谱标题', 'error');
-      return;
+    if (!title.trim()) { showToast('请填写食谱标题', 'error'); return; }
+    if (!coverImage) { showToast('请上传食谱封面图', 'error'); return; }
+    if (ingredients.some(i => !i.name.trim())) { showToast('请完善食材信息', 'error'); return; }
+
+    setIsAnalyzing(true);
+    showToast('AI正在分析营养成分...', 'info');
+
+    try {
+      // Real AI Analysis
+      const validIngredients = ingredients.filter(i => i.name.trim() !== '');
+      const analysis = await analyzeNutritionFromIngredients(title, validIngredients);
+
+      const newRecipe: RecipeDetail & { category: string } = {
+        id: Date.now().toString(),
+        title,
+        author: userProfile?.nickname || '我',
+        likes: 0,
+        imageUrl: coverImage,
+        calories: analysis.detailedNutrients.calories.value,
+        protein: analysis.detailedNutrients.protein.value,
+        carbs: analysis.detailedNutrients.carbs.total.value,
+        fat: analysis.detailedNutrients.fat.total.value,
+        prepTime: Number(prepTime) || 15,
+        description,
+        ingredients: validIngredients,
+        steps: steps.map((s, idx) => ({ step: idx + 1, description: s.description })),
+        detailedNutrients: analysis.detailedNutrients,
+        category: '全部' // 可以添加分类选择功能
+      };
+
+      await addRecipe(newRecipe);
+
+      showToast('发布成功！', 'success');
+      setTimeout(() => {
+        navigate('/community');
+      }, 1500);
+      
+    } catch (error) {
+      console.error(error);
+      showToast('发布失败，请重试', 'error');
+    } finally {
+      setIsAnalyzing(false);
     }
-    if (!coverImage) {
-      showToast('请上传食谱封面图', 'error');
-      return;
-    }
-    if (ingredients.some(i => !i.name.trim())) {
-      showToast('请完善食材信息', 'error');
-      return;
-    }
-
-    // Generate Mock Nutrition Data (Since we don't have user input for it, we simulate AI calc)
-    // 实际项目中可以调用 geminiService 进行估算
-    const estimatedCalories = Math.floor(Math.random() * 400 + 200); // 200-600
-    const estimatedProtein = Math.floor(estimatedCalories * 0.2 / 4);
-    const estimatedCarbs = Math.floor(estimatedCalories * 0.5 / 4);
-    const estimatedFat = Math.floor(estimatedCalories * 0.3 / 9);
-
-    const mockDetailedNutrients: DetailedNutrients = {
-      calories: { value: estimatedCalories, nrvPercent: Math.round(estimatedCalories/2000*100) },
-      protein: { value: estimatedProtein, nrvPercent: 0 },
-      carbs: { 
-        total: { value: estimatedCarbs, nrvPercent: 0 },
-        available: { value: Math.round(estimatedCarbs * 0.9) },
-        fiber: { value: Math.round(estimatedCarbs * 0.1) }
-      },
-      fat: {
-        total: { value: estimatedFat, nrvPercent: 0 },
-        saturated: { value: Math.round(estimatedFat * 0.2) },
-        monounsaturated: { value: Math.round(estimatedFat * 0.5) },
-        polyunsaturated: { value: Math.round(estimatedFat * 0.3) }
-      },
-      vitamins: {},
-      minerals: {}
-    };
-
-    const newRecipe: RecipeDetail & { category: string } = {
-      id: Date.now().toString(),
-      title,
-      author: userProfile?.nickname || '我',
-      likes: 0,
-      imageUrl: coverImage,
-      calories: estimatedCalories,
-      protein: estimatedProtein,
-      carbs: estimatedCarbs,
-      fat: estimatedFat,
-      prepTime: Number(prepTime) || 15,
-      description,
-      ingredients: ingredients.filter(i => i.name),
-      steps: steps.map((s, idx) => ({ step: idx + 1, description: s.description })),
-      detailedNutrients: mockDetailedNutrients,
-      category: '全部' // 默认分类
-    };
-
-    addRecipe(newRecipe);
-
-    showToast('发布成功！', 'success');
-    setTimeout(() => {
-      navigate('/community');
-    }, 1500);
   };
 
   return (
@@ -160,19 +150,25 @@ const CreateRecipe: React.FC = () => {
         <h1 className="font-bold text-lg text-slate-800">发布食谱</h1>
         <button 
           onClick={handleSubmit}
-          className="text-sm font-bold text-white bg-emerald-600 px-4 py-1.5 rounded-full shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
+          disabled={isAnalyzing || isUploading}
+          className="text-sm font-bold text-white bg-emerald-600 px-4 py-1.5 rounded-full shadow-lg shadow-emerald-200 active:scale-95 transition-transform flex items-center gap-2"
         >
-          发布
+          {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : '发布'}
         </button>
       </div>
 
       <div className="p-4 space-y-6">
         {/* Cover Image Upload */}
         <div 
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => !isUploading && fileInputRef.current?.click()}
           className={`aspect-video w-full rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group transition-colors ${!coverImage ? 'hover:border-emerald-400 hover:bg-emerald-50' : ''}`}
         >
-          {coverImage ? (
+          {isUploading ? (
+            <div className="flex flex-col items-center text-emerald-500">
+               <Loader2 size={32} className="animate-spin mb-2" />
+               <span className="text-xs font-bold">上传中...</span>
+            </div>
+          ) : coverImage ? (
             <>
               <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

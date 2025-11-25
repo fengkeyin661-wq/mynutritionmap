@@ -1,22 +1,26 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatform } from '../../context/PlatformContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ProductDetail, DetailedNutrients, Ingredient } from '../../types';
 import { analyzeNutritionFromIngredients } from '../../services/aiService';
-import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles } from 'lucide-react';
+import { uploadImage } from '../../lib/supabase';
+import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles, Image as ImageIcon, Camera } from 'lucide-react';
 
 const ProductEdit: React.FC = () => {
   const navigate = useNavigate();
   const { addProduct } = usePlatform();
   const { currentMerchantId, merchantName } = useAuth();
   const { showToast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Form State
+  const [productImage, setProductImage] = useState<string>('');
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -24,6 +28,22 @@ const ProductEdit: React.FC = () => {
   const [ingredients, setIngredients] = useState<Ingredient[]>([
     { name: '', amount: '' }
   ]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      const url = await uploadImage(file);
+      setIsUploading(false);
+      
+      if (url) {
+        setProductImage(url);
+        showToast('图片上传成功', 'success');
+      } else {
+        showToast('图片上传失败', 'error');
+      }
+    }
+  };
 
   const handleAddIngredient = () => {
     setIngredients([...ingredients, { name: '', amount: '' }]);
@@ -45,6 +65,7 @@ const ProductEdit: React.FC = () => {
     if (!name.trim()) { showToast('请输入商品名称', 'error'); return; }
     if (!price.trim()) { showToast('请输入价格', 'error'); return; }
     if (ingredients.some(i => !i.name)) { showToast('请完善配料表', 'error'); return; }
+    if (!productImage) { showToast('请上传商品图片', 'error'); return; }
 
     setIsAnalyzing(true);
     showToast('AI正在分析营养成分...', 'info');
@@ -68,7 +89,7 @@ const ProductEdit: React.FC = () => {
         name,
         price: Number(price),
         description: description || analysisResult.advice, // 如果没填简介，用AI建议代替
-        imageUrl: `https://picsum.photos/300/300?random=${Date.now()}`, // 模拟上传图片
+        imageUrl: productImage,
         ingredients: ingredients.filter(i => i.name && i.amount),
         
         // AI Generated Data
@@ -81,7 +102,7 @@ const ProductEdit: React.FC = () => {
       };
 
       // 3. Submit to Platform
-      addProduct(newProduct);
+      await addProduct(newProduct);
       showToast('提交成功！请等待管理员审核', 'success');
       navigate('/merchant/dashboard');
 
@@ -106,6 +127,37 @@ const ProductEdit: React.FC = () => {
       </div>
       
       <div className="p-6 max-w-2xl mx-auto space-y-6">
+        
+        {/* Image Upload */}
+        <div 
+          onClick={() => !isUploading && fileInputRef.current?.click()}
+          className={`aspect-video w-full rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group transition-colors bg-white ${!productImage ? 'border-slate-200 hover:border-emerald-400 hover:bg-emerald-50' : 'border-emerald-500'}`}
+        >
+          {isUploading ? (
+            <div className="flex flex-col items-center text-emerald-500">
+               <Loader2 size={32} className="animate-spin mb-2" />
+               <span className="text-xs font-bold">上传中...</span>
+            </div>
+          ) : productImage ? (
+            <>
+              <img src={productImage} alt="Product" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-full font-bold flex items-center gap-2">
+                   <Camera size={18} /> 更换图片
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-14 h-14 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mb-3">
+                <ImageIcon size={28} />
+              </div>
+              <p className="text-slate-500 font-medium text-sm">点击上传商品图</p>
+            </>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+        </div>
+
         {/* Basic Info */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
           <h2 className="font-bold text-slate-800 flex items-center gap-2">基本信息</h2>
@@ -189,9 +241,9 @@ const ProductEdit: React.FC = () => {
 
         <button 
           onClick={handleSubmit} 
-          disabled={isAnalyzing}
+          disabled={isAnalyzing || isUploading}
           className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all ${
-             isAnalyzing 
+             isAnalyzing || isUploading
              ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
              : 'bg-emerald-600 text-white shadow-emerald-200 active:scale-95 hover:bg-emerald-700'
           }`}

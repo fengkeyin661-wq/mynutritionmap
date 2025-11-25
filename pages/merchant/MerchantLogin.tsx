@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, uploadImage } from '../../lib/supabase';
 import { 
   Store, ArrowLeft, CheckCircle, Phone, Clock, 
   MapPin, FileText, Camera, Image as ImageIcon, Loader2, Mail, Lock
@@ -30,11 +30,14 @@ const MerchantLogin: React.FC = () => {
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   
-  // Images
+  // Images (URLs)
   const [businessLicense, setBusinessLicense] = useState<string>('');
   const [foodPermit, setFoodPermit] = useState<string>('');
   const [storefrontImg, setStorefrontImg] = useState<string>('');
   const [environmentImg, setEnvironmentImg] = useState<string>('');
+
+  // Upload Loading States
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -94,7 +97,7 @@ const MerchantLogin: React.FC = () => {
             location_lng: lng,
             status: 'PENDING',
             images: {
-              license: businessLicense, // Note: In real app, upload these to Storage and get URL first
+              license: businessLicense,
               permit: foodPermit,
               storefront: storefrontImg,
               environment: environmentImg
@@ -140,23 +143,38 @@ const MerchantLogin: React.FC = () => {
     );
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void, fieldName: string) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Temporary base64 for demo. In real app, upload to Supabase Storage here.
-      const reader = new FileReader();
-      reader.onloadend = () => setter(reader.result as string);
-      reader.readAsDataURL(file);
+      setUploadingField(fieldName);
+      const url = await uploadImage(file);
+      setUploadingField(null);
+      
+      if (url) {
+        setter(url);
+        showToast('图片上传成功', 'success');
+      } else {
+        showToast('图片上传失败', 'error');
+      }
     }
   };
 
-  const UploadBox = ({ label, value, onChange }: any) => {
+  const UploadBox = ({ label, value, onChange, isLoading }: any) => {
     const inputRef = useRef<HTMLInputElement>(null);
     return (
-      <div onClick={() => inputRef.current?.click()} className={`relative h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden ${value ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
-        {value ? <img src={value} className="w-full h-full object-cover opacity-80" /> : <div className="text-center p-2"><Camera size={18} className="mx-auto text-slate-400 mb-1"/><span className="text-[10px] text-slate-500 font-bold block">{label}</span></div>}
-        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onChange} />
-        {value && <div className="absolute bottom-1 right-1 bg-emerald-500 text-white rounded-full p-0.5"><CheckCircle size={10} /></div>}
+      <div onClick={() => !isLoading && inputRef.current?.click()} className={`relative h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-colors ${value ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}>
+        {isLoading ? (
+          <Loader2 className="animate-spin text-emerald-500" size={24} />
+        ) : value ? (
+          <img src={value} className="w-full h-full object-cover opacity-80" />
+        ) : (
+          <div className="text-center p-2">
+            <Camera size={18} className="mx-auto text-slate-400 mb-1"/>
+            <span className="text-[10px] text-slate-500 font-bold block">{label}</span>
+          </div>
+        )}
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onChange} disabled={isLoading} />
+        {value && !isLoading && <div className="absolute bottom-1 right-1 bg-emerald-500 text-white rounded-full p-0.5"><CheckCircle size={10} /></div>}
       </div>
     );
   };
@@ -210,11 +228,14 @@ const MerchantLogin: React.FC = () => {
                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3">
                   <h3 className="text-sm font-bold text-slate-800 border-b border-slate-50 pb-2">位置与资质</h3>
                   <div className="flex gap-2"><input type="text" value={address} onChange={e => setAddress(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="地址" /><button onClick={handleGetLocation} className="bg-emerald-50 text-emerald-600 px-2 rounded-xl text-[10px] w-16 flex flex-col items-center justify-center">{isLoadingLocation ? <Loader2 className="animate-spin" /> : <MapPin />} 定位</button></div>
-                  <div className="grid grid-cols-2 gap-3"><UploadBox label="营业执照" value={businessLicense} onChange={(e: any) => handleImageUpload(e, setBusinessLicense)} /><UploadBox label="门头照片" value={storefrontImg} onChange={(e: any) => handleImageUpload(e, setStorefrontImg)} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <UploadBox label="营业执照" value={businessLicense} isLoading={uploadingField === 'license'} onChange={(e: any) => handleImageUpload(e, setBusinessLicense, 'license')} />
+                    <UploadBox label="门头照片" value={storefrontImg} isLoading={uploadingField === 'storefront'} onChange={(e: any) => handleImageUpload(e, setStorefrontImg, 'storefront')} />
+                  </div>
                </div>
 
                <div className="pt-2">
-                 <button onClick={handleRegister} disabled={isSubmitting} className="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-transform text-base">{isSubmitting ? <Loader2 className="animate-spin" /> : '提交审核'}</button>
+                 <button onClick={handleRegister} disabled={isSubmitting || !!uploadingField} className="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-transform text-base">{isSubmitting ? <Loader2 className="animate-spin" /> : '提交审核'}</button>
                  <button onClick={() => setIsRegistering(false)} className="w-full mt-3 text-xs text-slate-400 font-bold hover:text-slate-600 py-2">取消申请</button>
                </div>
             </div>
