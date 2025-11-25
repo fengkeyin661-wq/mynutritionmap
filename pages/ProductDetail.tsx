@@ -6,13 +6,13 @@ import {
   ShoppingCart, AlertCircle, ShoppingBag, Star, Info,
   ChefHat, Activity, PlusCircle, Heart
 } from 'lucide-react';
-import { ProductDetail } from '../types';
+import { ProductDetail as ProductDetailType } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
 import { NutrientBar, MicroNutrientGrid } from '../components/NutrientVisualizations';
 
 // Mock Data Generator for the specific Product ID
-const getMockProductDetail = (id: string): ProductDetail => {
+const getMockProductDetail = (id: string): ProductDetailType => {
   return {
     id,
     name: "低脂鸡胸肉轻食餐盒",

@@ -5,7 +5,7 @@ import {
   ArrowLeft, Clock, Flame, Heart, MessageCircle, ThumbsDown, 
   Bookmark, PlusCircle, AlertCircle, ChefHat, Activity 
 } from 'lucide-react';
-import { RecipeDetail } from '../types';
+import { RecipeDetail as RecipeDetailType } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
 import { usePlatform } from '../context/PlatformContext';
