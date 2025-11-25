@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Configuration: Prefer Environment Variables, fallback to provided credentials
-const SUPABASE_URL = (import.meta as any).env.VITE_SUPABASE_URL || 'https://bxrkilsdmuwoerzmylwb.supabase.co';
-const SUPABASE_ANON_KEY = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4cmtpbHNkbXV3b2Vyem15bHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwNTA2MzcsImV4cCI6MjA3OTYyNjYzN30.1YsL8Loijnnz4k2Fhk93gtHhAlNo4Yk7YJ3dsg6otzo';
+// Safely access env to prevent crash if import.meta.env is undefined at runtime
+const env = (import.meta as any).env || {};
+
+const SUPABASE_URL = env.VITE_SUPABASE_URL || 'https://bxrkilsdmuwoerzmylwb.supabase.co';
+const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4cmtpbHNkbXV3b2Vyem15bHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwNTA2MzcsImV4cCI6MjA3OTYyNjYzN30.1YsL8Loijnnz4k2Fhk93gtHhAlNo4Yk7YJ3dsg6otzo';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
