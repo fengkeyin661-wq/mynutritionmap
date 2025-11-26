@@ -6,9 +6,12 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // Polyfill process.env.API_KEY so it works in client-side code
+      // Safely replace process.env.API_KEY with the string value
       'process.env.API_KEY': JSON.stringify(env.API_KEY || ''),
-      'process.env': {}
+      // Polyfill process.env for other libraries
+      'process.env': {},
+      // Polyfill global process to prevent "process is not defined" crashes
+      'process': { env: {} }
     }
   };
 });

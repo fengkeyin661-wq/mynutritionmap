@@ -1,9 +1,20 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { FoodAnalysisResult, IdentifiedFood, Ingredient } from "../types";
 
+// Helper to safely get API Key
+const getApiKey = () => {
+  try {
+    return process.env.API_KEY || '';
+  } catch (e) {
+    return '';
+  }
+};
+
+const API_KEY = getApiKey();
+
 // Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Note: In 0.1.0, we initialize with what we have. API calls will fail gracefully if key is missing.
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // Helper for fallback data
 const getFallbackAnalysisResult = (foodName: string): FoodAnalysisResult => {
@@ -62,6 +73,14 @@ const getFallbackAnalysisResult = (foodName: string): FoodAnalysisResult => {
  * 第一步：识别食物和配料
  */
 export const identifyFoodFromImage = async (base64Image: string): Promise<IdentifiedFood> => {
+  if (!API_KEY) {
+    console.warn("API Key missing, returning fallback");
+    return {
+      foodName: "未配置API Key",
+      ingredients: [{ name: "示例食材", amount: "100g" }]
+    };
+  }
+
   try {
     const prompt = `
       请识别这张图片中的食物。
@@ -129,6 +148,10 @@ export const identifyFoodFromImage = async (base64Image: string): Promise<Identi
  * 此函数同时用于用户拍照分析 和 商家发布商品分析
  */
 export const analyzeNutritionFromIngredients = async (foodName: string, ingredients: Ingredient[]): Promise<FoodAnalysisResult> => {
+  if (!API_KEY) {
+    return getFallbackAnalysisResult(foodName);
+  }
+
   try {
     const ingredientsStr = ingredients.map(i => `${i.name} ${i.amount}`).join(', ');
     const prompt = `
@@ -237,6 +260,8 @@ export const analyzeNutritionFromIngredients = async (foodName: string, ingredie
 };
 
 export const generateMealSuggestion = async (userPreferences: string): Promise<string> => {
+   if (!API_KEY) return "香煎三文鱼配藜麦和烤芦笋。";
+   
    try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
