@@ -178,7 +178,7 @@ const Community: React.FC = () => {
                       onClick={(e) => handleQuickAdd(e, recipe)}
                       className="w-full mt-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-1 active:scale-95"
                     >
-                      <Plus size={12} strokeWidth={3} /> 加入食谱
+                      <Plus size={12} strokeWidth={3} /> +今天吃
                     </button>
                   </div>
                 </div>

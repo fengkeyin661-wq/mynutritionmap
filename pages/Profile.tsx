@@ -263,7 +263,7 @@ const Profile: React.FC = () => {
                                onClick={() => handleAddToDailyLog(item)}
                                className="px-3 py-1.5 bg-emerald-50 text-emerald-600 font-bold text-xs rounded-lg flex items-center gap-1 active:scale-95 transition-transform"
                              >
-                               <PlusCircle size={14} /> 加入食谱
+                               <PlusCircle size={14} /> 记入今日
                              </button>
                              <button onClick={() => deleteFromFoodLibrary(item.id)} className="p-2 text-slate-300 hover:text-red-500 bg-slate-50 rounded-lg">
                                 <Trash2 size={16} />

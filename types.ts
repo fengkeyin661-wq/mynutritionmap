@@ -42,11 +42,14 @@ export interface IdentifiedFood {
 
 export interface FoodAnalysisResult {
   foodName: string;
+  // 使用详细结构替换简单的 NutrientInfo
   detailedNutrients: DetailedNutrients; 
   healthScore: number; // 0-100
   advice: string;
   tags: string[];
 }
+
+// --- 新增：系统角色与状态定义 ---
 
 export type UserRole = 'USER' | 'MERCHANT' | 'ADMIN';
 
@@ -95,6 +98,7 @@ export interface Product {
   merchantName: string; 
   distance: string;     
   status: ProductStatus; // 新增：审核状态
+  // 新增：用于列表页快速添加
   protein: number;
   carbs: number;
   fat: number;
@@ -119,6 +123,7 @@ export interface Recipe {
   imageUrl: string;
   calories: number;
   prepTime: number; // minutes
+  // 新增：用于列表页快速添加
   protein: number;
   carbs: number;
   fat: number;
@@ -146,6 +151,8 @@ export enum AnalysisStatus {
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR'
 }
+
+// --- 新增：饮食记录相关接口 ---
 
 export type MealSource = 'RECIPE' | 'PRODUCT' | 'AI_ANALYSIS';
 

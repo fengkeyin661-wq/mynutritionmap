@@ -68,19 +68,17 @@ const Dashboard: React.FC = () => {
         Object.entries(d.vitamins).forEach(([key, data]) => {
            if (!agg.vitamins[key]) agg.vitamins[key] = { value: '0', nrvPercent: 0 };
            const current = parseValue(agg.vitamins[key].value);
-           const vData = data as { value: string; nrvPercent: number };
-           const income = parseValue(vData.value);
+           const income = parseValue(data.value);
            agg.vitamins[key].value = `${(current.val + income.val).toFixed(1).replace(/\.0$/, '')}${income.unit || current.unit}`;
-           agg.vitamins[key].nrvPercent += vData.nrvPercent || 0;
+           agg.vitamins[key].nrvPercent += data.nrvPercent || 0;
         });
 
         Object.entries(d.minerals).forEach(([key, data]) => {
            if (!agg.minerals[key]) agg.minerals[key] = { value: '0', nrvPercent: 0 };
            const current = parseValue(agg.minerals[key].value);
-           const mData = data as { value: string; nrvPercent: number };
-           const income = parseValue(mData.value);
+           const income = parseValue(data.value);
            agg.minerals[key].value = `${(current.val + income.val).toFixed(1).replace(/\.0$/, '')}${income.unit || current.unit}`;
-           agg.minerals[key].nrvPercent += mData.nrvPercent || 0;
+           agg.minerals[key].nrvPercent += data.nrvPercent || 0;
         });
       }
     });
@@ -95,7 +93,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="px-5 pt-8 space-y-8 bg-slate-50/50">
+    <div className="pb-safe-nav px-5 pt-8 space-y-8 bg-slate-50/50">
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
@@ -133,31 +131,33 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-6">
-          {/* Donut Chart - Fixed Size to prevent Recharts -1 Error */}
+          {/* Donut Chart */}
           <div className="relative w-32 h-32 shrink-0">
-            <PieChart width={128} height={128}>
-              <Pie
-                data={calorieData}
-                cx="50%" cy="50%"
-                innerRadius={45}
-                outerRadius={60}
-                startAngle={90}
-                endAngle={-270}
-                dataKey="value"
-                stroke="none"
-                cornerRadius={10}
-                paddingAngle={5}
-              >
-                <Cell fill="url(#gradientMain)" />
-                <Cell fill="#f1f5f9" />
-              </Pie>
-              <defs>
-                  <linearGradient id="gradientMain" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#34d399" />
-                    <stop offset="100%" stopColor="#0d9488" />
-                  </linearGradient>
-              </defs>
-            </PieChart>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={calorieData}
+                  cx="50%" cy="50%"
+                  innerRadius={45}
+                  outerRadius={60}
+                  startAngle={90}
+                  endAngle={-270}
+                  dataKey="value"
+                  stroke="none"
+                  cornerRadius={10}
+                  paddingAngle={5}
+                >
+                  <Cell fill="url(#gradientMain)" />
+                  <Cell fill="#f1f5f9" />
+                </Pie>
+                <defs>
+                   <linearGradient id="gradientMain" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#34d399" />
+                      <stop offset="100%" stopColor="#0d9488" />
+                   </linearGradient>
+                </defs>
+              </PieChart>
+            </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">剩余</span>
                <span className="text-2xl font-black text-slate-800 -mt-1">{remainingCalories.toFixed(0)}</span>
@@ -199,7 +199,7 @@ const Dashboard: React.FC = () => {
         <div className="flex justify-between items-center mb-4 px-1">
            <h3 className="text-lg font-bold text-slate-800">今日饮食</h3>
            <Link to="/scan" className="text-xs bg-slate-800 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 shadow-lg shadow-slate-300 active:scale-95 transition-all">
-              <Plus size={14} /> 加入食谱
+              <Plus size={14} /> +今天吃
            </Link>
         </div>
         

@@ -1,216 +1,296 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { supabase } from '../../lib/supabase';
 import { 
-  Store, ArrowLeft,
-  MapPin, Loader2, Mail, Lock, Building2
+  Store, ArrowLeft, CheckCircle, Building2, Phone, Clock, 
+  MapPin, FileText, Camera, Image as ImageIcon, Loader2 
 } from 'lucide-react';
 
 const MerchantLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { loginAs } = useAuth();
   const { showToast } = useToast();
 
   const [isRegistering, setIsRegistering] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
-  // Form Fields
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // --- Form States ---
   const [shopName, setShopName] = useState('');
   const [phone, setPhone] = useState('');
   const [hours, setHours] = useState('');
   const [address, setAddress] = useState('');
-  const [lat, setLat] = useState('0');
-  const [lng, setLng] = useState('0');
+  
+  // Images
+  const [businessLicense, setBusinessLicense] = useState<string>('');
+  const [foodPermit, setFoodPermit] = useState<string>('');
+  const [storefrontImg, setStorefrontImg] = useState<string>('');
+  const [environmentImg, setEnvironmentImg] = useState<string>('');
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      showToast('请输入邮箱和密码', 'error');
+  const handleLogin = () => {
+    // Demo login logic
+    loginAs('MERCHANT', 'm1', '轻食主义工坊');
+    showToast('欢迎回来，店长！', 'success');
+    navigate('/merchant/dashboard');
+  };
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      showToast('您的浏览器不支持地理定位', 'error');
       return;
     }
-    setIsSubmitting(true);
-    const success = await login(email, password);
-    setIsSubmitting(false);
 
-    if (success) {
-      // 检查角色
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-        if (profile?.role === 'MERCHANT') {
-          showToast('商家登录成功', 'success');
-          navigate('/merchant/dashboard');
-        } else {
-          showToast('该账号不是商家账号', 'error');
-          supabase.auth.signOut();
-        }
-      }
-    }
-  };
-
-  const handleRegister = async () => {
-    if (!email || !password) { showToast('请设置邮箱和密码', 'error'); return; }
-    if (!shopName.trim()) { showToast('请填写店铺名称', 'error'); return; }
-    
-    setIsSubmitting(true);
-
-    try {
-      // 1. Sign Up User (传递 Metadata, 以便 Trigger 自动处理 Profile)
-      // 我们显式传入 role: 'MERCHANT'，这样 Trigger 就会把 Profile 的 Role 设为 Merchant
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            nickname: shopName,
-            role: 'MERCHANT'
-          }
-        }
-      });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-         // 2. Double Check & Upsert Profile
-         // 为了保险起见 (防止 Race Condition)，我们再次 UPSERT Profile
-         // 如果 Trigger 已经创建了，这里就是 Update；如果 Trigger 慢了，这里就是 Insert
-         const { error: profileError } = await supabase.from('profiles').upsert({
-            id: authData.user.id,
-            nickname: shopName,
-            role: 'MERCHANT'
-         });
-         
-         if (profileError) {
-             console.warn("Profile upsert warning:", profileError);
-         }
-
-         // 3. Create Merchant Record
-         // 只有当 Profile 存在 (或 trigger 成功) 且是 Merchant 时，这一步才会被 RLS 允许 (如果策略依赖 owner_id)
-         const { error: merchantError } = await supabase.from('merchants').insert({
-            owner_id: authData.user.id,
-            name: shopName,
-            phone,
-            hours,
-            address,
-            location_lat: lat,
-            location_lng: lng,
-            status: 'PENDING',
-            images: { license: '', storefront: '' }
-         });
-
-         if (merchantError) {
-             console.error("Merchant Insert Error:", merchantError);
-             throw new Error("店铺创建失败，请联系管理员");
-         }
-
-         showToast('入驻申请提交成功！', 'success');
-         if (authData.session) {
-            navigate('/merchant/dashboard');
-         } else {
-            showToast('注册成功，请查收验证邮件', 'info');
-            setIsRegistering(false);
-         }
-      }
-
-    } catch (e: any) {
-      showToast(e.message || '注册失败', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getLocation = () => {
-    if (!navigator.geolocation) { showToast('不支持定位', 'error'); return; }
     setIsLoadingLocation(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLng(pos.coords.longitude.toFixed(6));
-        setAddress(`已定位: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+      (position) => {
         setIsLoadingLocation(false);
+        // In a real app, use Reverse Geocoding API here to get street address
+        // For demo, we simulate a readable address based on coords
+        const lat = position.coords.latitude.toFixed(4);
+        const lng = position.coords.longitude.toFixed(4);
+        setAddress(`定位地址: 经度${lng}, 纬度${lat} (请补充详细门牌号)`);
         showToast('定位成功', 'success');
       },
-      () => {
+      (error) => {
         setIsLoadingLocation(false);
-        showToast('定位失败，请手动填写', 'error');
+        console.error(error);
+        showToast('获取定位失败，请手动填写', 'error');
       }
     );
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setter(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRegister = () => {
+    // Validation
+    if (!shopName.trim()) { showToast('请输入店铺名称', 'error'); return; }
+    if (!phone.trim()) { showToast('请输入联系电话', 'error'); return; }
+    if (!address.trim()) { showToast('请完善店铺地址', 'error'); return; }
+    if (!businessLicense) { showToast('请上传营业执照', 'error'); return; }
+    if (!foodPermit) { showToast('请上传食品经营许可证', 'error'); return; }
+
+    // Demo registration - creates a random ID
+    const newId = 'm_' + Date.now();
+    
+    // In a real app, send all this data to backend
+    console.log({ shopName, phone, hours, address, businessLicense, foodPermit, storefrontImg, environmentImg });
+
+    // 注册时保存店铺名称
+    loginAs('MERCHANT', newId, shopName);
+    showToast('申请提交成功！资质审核中...', 'success');
+    
+    // Slight delay to simulate processing
+    setTimeout(() => {
+        navigate('/merchant/dashboard');
+    }, 1000);
+  };
+
+  // Helper Component for Image Upload Box
+  const UploadBox = ({ label, value, onChange }: { label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+    return (
+      <div 
+        onClick={() => inputRef.current?.click()}
+        className={`relative h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors overflow-hidden ${value ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}
+      >
+        {value ? (
+           <img src={value} alt={label} className="w-full h-full object-cover opacity-80" />
+        ) : (
+           <div className="text-center p-2">
+             <Camera size={20} className="mx-auto text-slate-400 mb-1" />
+             <span className="text-[10px] text-slate-500 font-bold block">{label}</span>
+           </div>
+        )}
+        <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onChange} />
+        {value && <div className="absolute bottom-1 right-1 bg-emerald-500 text-white rounded-full p-0.5"><CheckCircle size={12} /></div>}
+      </div>
+    );
+  };
+
   return (
-    <div className="h-full flex flex-col bg-slate-50">
-      <div className="bg-white p-4 pt-safe sticky top-0 z-10 border-b border-slate-100 flex items-center justify-between">
-        <button onClick={() => navigate('/merchants')} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-600"><ArrowLeft size={20}/></button>
-        <h1 className="font-bold text-slate-800">{isRegistering ? '商家入驻' : '商家登录'}</h1>
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="p-4 bg-white shadow-sm z-20 sticky top-0 flex items-center justify-between">
+        <button onClick={() => navigate('/merchants')} className="flex items-center text-slate-500 hover:text-emerald-700 transition-colors">
+          <ArrowLeft size={20} className="mr-1" /> 返回
+        </button>
+        <h1 className="font-bold text-slate-800 text-sm">
+           {isRegistering ? '商家入驻申请' : '商家登录'}
+        </h1>
         <div className="w-10"></div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        {!isRegistering ? (
-          <div className="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 mt-4 animate-fade-in-up">
-             <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto shadow-xl shadow-slate-200">
-                <Store size={32} />
-             </div>
-             
-             <div className="space-y-4">
-                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                   <Mail size={20} className="text-slate-400 mr-3" />
-                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="登录邮箱" className="bg-transparent outline-none flex-1 font-bold text-slate-700" />
-                </div>
-                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                   <Lock size={20} className="text-slate-400 mr-3" />
-                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="密码" className="bg-transparent outline-none flex-1 font-bold text-slate-700" />
-                </div>
-                
-                <button onClick={handleLogin} disabled={isSubmitting} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-bold shadow-lg shadow-slate-200 active:scale-95 transition-transform">
-                  {isSubmitting ? <Loader2 className="animate-spin mx-auto" /> : '进入后台'}
-                </button>
+      <div className="flex-1 overflow-y-auto pb-10 px-4 pt-6">
+        <div className="max-w-md mx-auto">
+            
+          {!isRegistering ? (
+            // --- LOGIN VIEW ---
+            <div className="bg-white p-8 rounded-3xl shadow-xl shadow-slate-200 border border-slate-100 mt-10">
+               <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto shadow-lg shadow-slate-300">
+                  <Store size={32} />
+               </div>
+               <h2 className="text-2xl font-bold text-slate-800 text-center mb-6">管理后台登录</h2>
+               
+               <div className="space-y-4">
+                  {/* Mock Login Hint */}
+                  <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 text-emerald-800 text-sm flex items-start gap-3">
+                      <CheckCircle size={18} className="shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">演示环境</p>
+                        <p className="text-xs opacity-80 mt-1">点击下方按钮直接登录示例账号。</p>
+                      </div>
+                  </div>
+                  
+                  <button 
+                    onClick={handleLogin}
+                    className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold shadow-lg shadow-slate-200 active:scale-95 transition-transform"
+                  >
+                    安全登录
+                  </button>
+                  <div className="text-center pt-4 border-t border-slate-100 mt-4">
+                     <p className="text-xs text-slate-400 mb-2">还不是认证商家？</p>
+                     <button onClick={() => setIsRegistering(true)} className="text-sm text-emerald-600 font-bold hover:underline">
+                        立即申请入驻
+                     </button>
+                  </div>
+               </div>
+            </div>
+          ) : (
+            // --- REGISTER VIEW ---
+            <div className="space-y-6">
+               <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-slate-800">填写店铺资料</h2>
+                  <p className="text-slate-500 text-xs mt-1">请如实填写，审核将在 1-3 个工作日内完成</p>
+               </div>
 
-                <div className="text-center pt-4 border-t border-slate-100 mt-2">
-                   <button onClick={() => setIsRegistering(true)} className="text-sm text-emerald-600 font-bold hover:underline">我是新商家，立即入驻</button>
-                </div>
-             </div>
-          </div>
-        ) : (
-          <div className="space-y-6 animate-fade-in">
-             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-                <div className="flex items-center gap-2 mb-2 border-b border-slate-50 pb-2">
-                   <Building2 size={18} className="text-emerald-600" />
-                   <span className="font-bold text-slate-800">店铺资料</span>
-                </div>
-                <input value={shopName} onChange={e => setShopName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700" placeholder="店铺名称" />
-                <div className="grid grid-cols-2 gap-3">
-                   <input value={phone} onChange={e => setPhone(e.target.value)} className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" placeholder="联系电话" />
-                   <input value={hours} onChange={e => setHours(e.target.value)} className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" placeholder="营业时间" />
-                </div>
-                <div className="flex gap-2">
-                   <input value={address} onChange={e => setAddress(e.target.value)} className="flex-1 p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" placeholder="店铺地址" />
-                   <button onClick={getLocation} disabled={isLoadingLocation} className="bg-emerald-50 text-emerald-600 px-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center min-w-[60px]">
-                      {isLoadingLocation ? <Loader2 size={16} className="animate-spin" /> : <><MapPin size={16} /> 定位</>}
-                   </button>
-                </div>
-             </div>
+               {/* Section 1: Basic Info */}
+               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-50 pb-2">
+                     <Store size={16} className="text-emerald-500" /> 基本信息
+                  </h3>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1.5 ml-1">店铺名称</label>
+                    <input 
+                      type="text" 
+                      value={shopName}
+                      onChange={(e) => setShopName(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-sm font-bold"
+                      placeholder="如: 绿源有机农场"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                     <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-1.5 ml-1 flex items-center gap-1"><Phone size={10} /> 联系电话</label>
+                        <input 
+                          type="tel" 
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-sm"
+                          placeholder="手机或座机"
+                        />
+                     </div>
+                     <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-1.5 ml-1 flex items-center gap-1"><Clock size={10} /> 营业时间</label>
+                        <input 
+                          type="text" 
+                          value={hours}
+                          onChange={(e) => setHours(e.target.value)}
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-sm"
+                          placeholder="如: 09:00-22:00"
+                        />
+                     </div>
+                  </div>
+               </div>
 
-             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-                <div className="flex items-center gap-2 mb-2 border-b border-slate-50 pb-2">
-                   <Lock size={18} className="text-slate-400" />
-                   <span className="font-bold text-slate-800">后台账号</span>
-                </div>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" placeholder="登录邮箱" />
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm" placeholder="设置密码" />
-             </div>
+               {/* Section 2: Location */}
+               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-50 pb-2">
+                     <MapPin size={16} className="text-emerald-500" /> 店铺地址
+                  </h3>
+                  <div className="flex gap-2">
+                     <input 
+                       type="text" 
+                       value={address}
+                       onChange={(e) => setAddress(e.target.value)}
+                       className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-sm"
+                       placeholder="点击右侧按钮获取定位"
+                     />
+                     <button 
+                       onClick={handleGetLocation}
+                       disabled={isLoadingLocation}
+                       className="bg-emerald-50 text-emerald-600 px-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center border border-emerald-100 hover:bg-emerald-100 active:scale-95 transition-all w-20 shrink-0"
+                     >
+                       {isLoadingLocation ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                       <span className="mt-1">{isLoadingLocation ? '定位中' : '获取定位'}</span>
+                     </button>
+                  </div>
+               </div>
 
-             <button onClick={handleRegister} disabled={isSubmitting} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-transform">
-               {isSubmitting ? <Loader2 className="animate-spin mx-auto" /> : '提交入驻申请'}
-             </button>
-             <button onClick={() => setIsRegistering(false)} className="w-full text-center text-slate-400 text-sm font-bold">返回登录</button>
-          </div>
-        )}
+               {/* Section 3: Qualifications */}
+               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-50 pb-2">
+                     <FileText size={16} className="text-emerald-500" /> 资质认证
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                     <UploadBox 
+                        label="营业执照" 
+                        value={businessLicense} 
+                        onChange={(e) => handleImageUpload(e, setBusinessLicense)} 
+                     />
+                     <UploadBox 
+                        label="食品经营许可证" 
+                        value={foodPermit} 
+                        onChange={(e) => handleImageUpload(e, setFoodPermit)} 
+                     />
+                  </div>
+                  <p className="text-[10px] text-slate-400">请确保上传的图片清晰可见，文字可识别。</p>
+               </div>
+
+               {/* Section 4: Environment */}
+               <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-50 pb-2">
+                     <ImageIcon size={16} className="text-emerald-500" /> 店铺照片
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                     <UploadBox 
+                        label="门头照片" 
+                        value={storefrontImg} 
+                        onChange={(e) => handleImageUpload(e, setStorefrontImg)} 
+                     />
+                     <UploadBox 
+                        label="店内环境" 
+                        value={environmentImg} 
+                        onChange={(e) => handleImageUpload(e, setEnvironmentImg)} 
+                     />
+                  </div>
+               </div>
+
+               {/* Submit Button */}
+               <div className="pt-2 pb-8">
+                 <button 
+                   onClick={handleRegister}
+                   className="w-full py-4 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-transform text-lg"
+                 >
+                   提交审核
+                 </button>
+                 <button onClick={() => setIsRegistering(false)} className="w-full mt-4 text-sm text-slate-400 font-bold hover:text-slate-600">
+                    取消申请，返回登录
+                 </button>
+               </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

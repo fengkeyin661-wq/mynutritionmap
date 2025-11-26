@@ -6,13 +6,13 @@ import {
   ShoppingCart, AlertCircle, ShoppingBag, Star, Info,
   ChefHat, Activity, PlusCircle, Heart
 } from 'lucide-react';
-import type { ProductDetail as ProductDetailType } from '../types';
+import { ProductDetail } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
 import { NutrientBar, MicroNutrientGrid } from '../components/NutrientVisualizations';
 
 // Mock Data Generator for the specific Product ID
-const getMockProductDetail = (id: string): ProductDetailType => {
+const getMockProductDetail = (id: string): ProductDetail => {
   return {
     id,
     name: "低脂鸡胸肉轻食餐盒",
@@ -310,7 +310,7 @@ const ProductDetail: React.FC = () => {
                onClick={handleAddToLog}
                className="flex-1 bg-slate-800 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
-               <PlusCircle size={18} /> 加入食谱
+               <PlusCircle size={18} /> 记入今日
             </button>
             <button className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-emerald-200">
                立即购买

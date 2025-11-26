@@ -5,7 +5,7 @@ import {
   ArrowLeft, Clock, Flame, Heart, MessageCircle, ThumbsDown, 
   Bookmark, PlusCircle, AlertCircle, ChefHat, Activity 
 } from 'lucide-react';
-import type { RecipeDetail as RecipeDetailType } from '../types';
+import { RecipeDetail } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
 import { usePlatform } from '../context/PlatformContext';
@@ -97,7 +97,7 @@ const RecipeDetail: React.FC = () => {
                 onClick={handleAddToLog}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-full font-bold text-xs shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
               >
-                 <PlusCircle size={16} /> 加入食谱
+                 <PlusCircle size={16} /> 记入饮食
               </button>
            </div>
         </div>

@@ -1,6 +1,7 @@
+
 import React, { useState, useRef } from 'react';
 import { Camera, AlertCircle, Loader2, Sparkles, Edit2, Check, Trash2, ArrowLeft, PlusCircle } from 'lucide-react';
-import { identifyFoodFromImage, analyzeNutritionFromIngredients } from '../services/aiService';
+import { identifyFoodFromImage, analyzeNutritionFromIngredients } from '../services/geminiService';
 import { AnalysisStatus, FoodAnalysisResult, Ingredient } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,7 +27,7 @@ const Analysis: React.FC = () => {
       reader.onloadend = () => {
         const base64String = reader.result as string;
         setImage(base64String);
-        startIdentification(base64String); // Qwen supports full data URI
+        startIdentification(base64String.split(',')[1]);
       };
       reader.readAsDataURL(file);
     }
@@ -241,7 +242,7 @@ const Analysis: React.FC = () => {
              </div>
 
              <button onClick={handleAddToLog} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2">
-                <PlusCircle size={20} /> 加入食谱
+                <PlusCircle size={20} /> +今天吃
              </button>
           </div>
 
