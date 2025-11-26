@@ -1,22 +1,36 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useDailyLog } from '../context/DailyLogContext';
+import { useToast } from '../context/ToastContext';
 import { 
   User, ChevronRight, LogOut, Heart, 
   QrCode, Info, Camera, Edit2, X, Trash2,
-  Shield, FileText, Flame, PlusCircle
+  Shield, FileText, Flame, PlusCircle, Check, Save,
+  Ruler, Weight, Calendar, Activity
 } from 'lucide-react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { UserProfile, Gender, ActivityLevel } from '../types';
 
-type ModalType = 'NONE' | 'QR' | 'LOGS' | 'AGREEMENT' | 'PRIVACY' | 'ABOUT';
+type ModalType = 'NONE' | 'QR' | 'LOGS' | 'AGREEMENT' | 'PRIVACY' | 'ABOUT' | 'EDIT_PROFILE';
 
 const Profile: React.FC = () => {
-  const { role, userProfile, loginAs, logout, favoriteRecipes, favoriteProducts, userFoodLibrary, deleteFromFoodLibrary } = useAuth();
+  const { role, userProfile, loginAs, logout, favoriteRecipes, favoriteProducts, userFoodLibrary, deleteFromFoodLibrary, updateUserProfile } = useAuth();
   const { addLog } = useDailyLog();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   
   const [activeModal, setActiveModal] = useState<ModalType>('NONE');
+
+  // --- Edit Profile State ---
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [editAvatar, setEditAvatar] = useState('');
+  const [editNickname, setEditNickname] = useState('');
+  const [editGender, setEditGender] = useState<Gender>('MALE');
+  const [editAge, setEditAge] = useState('');
+  const [editHeight, setEditHeight] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [editActivity, setEditActivity] = useState<ActivityLevel>('MODERATE');
 
   // 如果没有用户资料，直接跳转到登录/注册引导页
   if (role === 'USER' && !userProfile) {
@@ -32,7 +46,6 @@ const Profile: React.FC = () => {
   };
 
   const handleFoodLogClick = () => {
-    // 即使没有记录也打开，展示空状态引导
     setActiveModal('LOGS');
   };
 
@@ -44,9 +57,58 @@ const Profile: React.FC = () => {
       protein: item.protein,
       carbs: item.carbs,
       fat: item.fat,
-      sourceType: 'AI_ANALYSIS', // DIY items are usually from analysis
+      sourceType: 'AI_ANALYSIS', 
       detailedNutrients: item.detailedNutrients
     });
+  };
+
+  // --- Edit Profile Handlers ---
+
+  const openEditModal = () => {
+    if (userProfile) {
+      setEditAvatar(userProfile.avatarUrl || '');
+      setEditNickname(userProfile.nickname);
+      setEditGender(userProfile.gender);
+      setEditAge(userProfile.age.toString());
+      setEditHeight(userProfile.height.toString());
+      setEditWeight(userProfile.weight.toString());
+      setEditActivity(userProfile.activityLevel);
+      setActiveModal('EDIT_PROFILE');
+    }
+  };
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditAvatar(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveProfile = () => {
+    if (!editNickname.trim()) {
+      showToast('昵称不能为空', 'error');
+      return;
+    }
+
+    const updatedProfile: UserProfile = {
+      nickname: editNickname,
+      avatarUrl: editAvatar,
+      gender: editGender,
+      age: parseInt(editAge) || 25,
+      height: parseInt(editHeight) || 170,
+      weight: parseInt(editWeight) || 65,
+      activityLevel: editActivity,
+      bmr: 0, // Will be recalculated
+      tdee: 0, // Will be recalculated
+      bmi: 0   // Will be recalculated
+    };
+
+    updateUserProfile(updatedProfile);
+    setActiveModal('NONE');
   };
 
   const closeModal = () => setActiveModal('NONE');
@@ -60,7 +122,10 @@ const Profile: React.FC = () => {
         
         <div className="flex justify-between items-start relative z-10">
            <h1 className="text-2xl font-bold text-slate-800">我的</h1>
-           <button onClick={() => navigate('/login')} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-emerald-600 transition-colors">
+           <button 
+             onClick={openEditModal} 
+             className="p-2 bg-slate-50 rounded-full text-slate-400 hover:text-emerald-600 transition-colors shadow-sm active:scale-95"
+           >
               <Edit2 size={18} />
            </button>
         </div>
@@ -209,6 +274,148 @@ const Profile: React.FC = () => {
       </div>
 
       {/* --- MODALS --- */}
+
+      {/* Edit Profile Modal */}
+      {activeModal === 'EDIT_PROFILE' && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-md h-[90vh] sm:h-[80vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col animate-slide-up shadow-2xl">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <h3 className="text-lg font-bold text-slate-800">编辑资料</h3>
+              <button onClick={closeModal} className="p-2 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              
+              {/* Avatar */}
+              <div className="flex flex-col items-center">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative w-24 h-24 rounded-full border-4 border-slate-50 shadow-sm overflow-hidden bg-slate-100 cursor-pointer group"
+                >
+                  {editAvatar ? (
+                    <img src={editAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                      <User size={32} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera size={24} className="text-white" />
+                  </div>
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                <p className="text-xs text-slate-400 mt-2">点击更换头像</p>
+              </div>
+
+              {/* Basic Info */}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">昵称</label>
+                  <input 
+                    value={editNickname}
+                    onChange={e => setEditNickname(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 font-bold text-slate-700"
+                    placeholder="请输入昵称"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">性别</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => setEditGender('MALE')}
+                      className={`py-3 rounded-xl font-bold border ${editGender === 'MALE' ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                    >
+                      ♂ 男生
+                    </button>
+                    <button 
+                      onClick={() => setEditGender('FEMALE')}
+                      className={`py-3 rounded-xl font-bold border ${editGender === 'FEMALE' ? 'bg-pink-50 border-pink-500 text-pink-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                    >
+                      ♀ 女生
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <hr className="border-slate-100" />
+
+              {/* Body Stats */}
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                  <Activity size={16} className="text-emerald-500" /> 身体数据
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                   <div>
+                      <label className="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1"><Calendar size={10} /> 年龄</label>
+                      <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                         <input type="number" value={editAge} onChange={e => setEditAge(e.target.value)} className="w-full bg-transparent font-bold outline-none text-slate-700" />
+                      </div>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1"><Ruler size={10} /> 身高(cm)</label>
+                      <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                         <input type="number" value={editHeight} onChange={e => setEditHeight(e.target.value)} className="w-full bg-transparent font-bold outline-none text-slate-700" />
+                      </div>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1"><Weight size={10} /> 体重(kg)</label>
+                      <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                         <input type="number" value={editWeight} onChange={e => setEditWeight(e.target.value)} className="w-full bg-transparent font-bold outline-none text-slate-700" />
+                      </div>
+                   </div>
+                </div>
+              </div>
+
+              {/* Activity Level */}
+              <div>
+                 <h4 className="text-sm font-bold text-slate-800 mb-3">日常活动量</h4>
+                 <div className="space-y-2">
+                    {[
+                      { val: 'SEDENTARY', label: '久坐不动', desc: '办公室工作，几乎不运动' },
+                      { val: 'LIGHT', label: '轻度活动', desc: '每周运动 1-3 天' },
+                      { val: 'MODERATE', label: '中度活动', desc: '每周运动 3-5 天' },
+                      { val: 'ACTIVE', label: '高度活动', desc: '每周运动 6-7 天' },
+                      { val: 'VERY_ACTIVE', label: '极度活动', desc: '体力劳动或专业训练' }
+                    ].map((option) => (
+                      <button
+                        key={option.val}
+                        onClick={() => setEditActivity(option.val as ActivityLevel)}
+                        className={`w-full p-3 rounded-xl border text-left transition-all ${
+                          editActivity === option.val 
+                          ? 'border-emerald-500 bg-emerald-50' 
+                          : 'border-slate-100 bg-white'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                             <div className={`text-sm font-bold ${editActivity === option.val ? 'text-emerald-700' : 'text-slate-700'}`}>{option.label}</div>
+                             <div className="text-[10px] text-slate-400">{option.desc}</div>
+                          </div>
+                          {editActivity === option.val && <Check size={16} className="text-emerald-500" />}
+                        </div>
+                      </button>
+                    ))}
+                 </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-white border-t border-slate-100">
+               <button 
+                 onClick={handleSaveProfile}
+                 className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-transform flex items-center justify-center gap-2"
+               >
+                 <Save size={18} /> 保存修改
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Code Modal */}
       {activeModal === 'QR' && (

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AreaChart, Area, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Flame, Plus, Trash2, Activity, X, ChevronRight, Zap } from 'lucide-react';
@@ -99,24 +98,26 @@ const Dashboard: React.FC = () => {
 
         // Sum Vitamins
         Object.entries(d.vitamins).forEach(([key, data]) => {
+           const vData = data as { value: string; nrvPercent: number };
            if (!agg.vitamins[key]) agg.vitamins[key] = { value: '0', nrvPercent: 0 };
            const current = parseValue(agg.vitamins[key].value);
-           const income = parseValue(data.value);
+           const income = parseValue(vData.value);
            const sumVal = (current.val + income.val).toFixed(1).replace(/\.0$/, ''); 
            const unit = income.unit || current.unit;
            agg.vitamins[key].value = `${sumVal}${unit}`;
-           agg.vitamins[key].nrvPercent += data.nrvPercent || 0;
+           agg.vitamins[key].nrvPercent += vData.nrvPercent || 0;
         });
 
         // Sum Minerals
         Object.entries(d.minerals).forEach(([key, data]) => {
+           const mData = data as { value: string; nrvPercent: number };
            if (!agg.minerals[key]) agg.minerals[key] = { value: '0', nrvPercent: 0 };
            const current = parseValue(agg.minerals[key].value);
-           const income = parseValue(data.value);
+           const income = parseValue(mData.value);
            const sumVal = (current.val + income.val).toFixed(1).replace(/\.0$/, '');
            const unit = income.unit || current.unit;
            agg.minerals[key].value = `${sumVal}${unit}`;
-           agg.minerals[key].nrvPercent += data.nrvPercent || 0;
+           agg.minerals[key].nrvPercent += mData.nrvPercent || 0;
         });
       }
     });

@@ -1,14 +1,27 @@
 
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Scan, Store, Users, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Navigation: React.FC = () => {
   const { role } = useAuth();
+  const location = useLocation();
   
   // 如果不是普通用户，隐藏底部导航栏 (商家和管理员有自己的界面布局)
   if (role !== 'USER') return null;
+
+  // 定义需要隐藏底部导航栏的路径
+  // 包括：登录页、发布页、详情页、商家/管理员后台路由
+  const isHidden = 
+    location.pathname === '/login' ||
+    location.pathname.startsWith('/merchant/') || 
+    location.pathname.startsWith('/admin/') ||
+    location.pathname === '/community/create' ||
+    location.pathname.startsWith('/community/recipe/') ||
+    location.pathname.startsWith('/merchants/product/');
+
+  if (isHidden) return null;
 
   const navItems = [
     { to: "/", icon: Home, label: "首页" },
