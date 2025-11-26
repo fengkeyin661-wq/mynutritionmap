@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatform } from '../../context/PlatformContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ProductDetail, DetailedNutrients, Ingredient } from '../../types';
 import { analyzeNutritionFromIngredients } from '../../services/geminiService';
-import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles, Image as ImageIcon, Camera } from 'lucide-react';
 
 const ProductEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +24,19 @@ const ProductEdit: React.FC = () => {
   const [ingredients, setIngredients] = useState<Ingredient[]>([
     { name: '', amount: '' }
   ]);
+  const [productImage, setProductImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProductImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAddIngredient = () => {
     setIngredients([...ingredients, { name: '', amount: '' }]);
@@ -68,7 +81,7 @@ const ProductEdit: React.FC = () => {
         name,
         price: Number(price),
         description: description || analysisResult.advice, // 如果没填简介，用AI建议代替
-        imageUrl: `https://picsum.photos/300/300?random=${Date.now()}`, // 模拟上传图片
+        imageUrl: productImage || `https://picsum.photos/300/300?random=${Date.now()}`, 
         ingredients: ingredients.filter(i => i.name && i.amount),
         
         // AI Generated Data
@@ -101,6 +114,32 @@ const ProductEdit: React.FC = () => {
       </div>
       
       <div className="p-6 max-w-2xl mx-auto space-y-6">
+        {/* Image Upload */}
+        <div 
+          onClick={() => fileInputRef.current?.click()}
+          className={`aspect-video w-full rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group transition-colors ${!productImage ? 'hover:border-emerald-400 hover:bg-emerald-50' : ''}`}
+        >
+          {productImage ? (
+            <>
+              <img src={productImage} alt="Product" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-full font-bold flex items-center gap-2">
+                   <Camera size={18} /> 更换图片
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-3">
+                <ImageIcon size={32} />
+              </div>
+              <p className="text-slate-500 font-medium">上传商品图片</p>
+              <p className="text-slate-400 text-xs mt-1">支持 jpg, png 格式</p>
+            </>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+        </div>
+
         {/* Basic Info */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
           <h2 className="font-bold text-slate-800 flex items-center gap-2">基本信息</h2>
