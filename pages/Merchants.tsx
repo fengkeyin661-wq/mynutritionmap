@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { ShoppingBag, Flame, Plus, Search, Tag, MapPin, Store, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -82,9 +83,14 @@ const Merchants: React.FC = () => {
   return (
     <div className="pb-24 px-4 pt-6 bg-slate-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">健康优选</h1>
-        <p className="text-slate-500 text-sm">严选优质健康食品，吃出好身材</p>
+      <div className="mb-6 flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">健康优选</h1>
+          <p className="text-slate-500 text-sm">严选优质健康食品，吃出好身材</p>
+        </div>
+        <Link to="/merchant/login" className="flex items-center gap-1 bg-slate-800 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md active:scale-95 transition-transform">
+           <Store size={12} /> 商家入驻
+        </Link>
       </div>
 
       {/* Search & Filter */}
@@ -210,21 +216,7 @@ const Merchants: React.FC = () => {
         </div>
       )}
       
-      {/* Merchant Application Banner */}
-      <div className="mt-8 p-6 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl text-center shadow-lg shadow-emerald-200 relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-black/10 rounded-full blur-2xl"></div>
-        
-        <div className="relative z-10">
-          <h3 className="font-bold text-white mb-2 text-lg">您是健康食品商家吗?</h3>
-          <p className="text-sm text-emerald-100 mb-5 max-w-[80%] mx-auto leading-relaxed">
-            加入 NutriMap 生态，将您的优质健康食品推荐给数万名追求健康生活的用户。
-          </p>
-          <Link to="/merchant/login" className="inline-block bg-white text-emerald-700 text-sm font-bold px-8 py-3 rounded-full shadow-md active:scale-95 transition-transform">
-            前往入驻 / 商家登录
-          </Link>
-        </div>
-      </div>
+      {/* Merchant Application Banner has been removed as per request */}
     </div>
   );
 };

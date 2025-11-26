@@ -1,22 +1,12 @@
 
 import React, { useState } from 'react';
-import { AreaChart, Area, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Flame, Plus, Trash2, Activity, X, ChevronRight, Zap } from 'lucide-react';
+import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Flame, Plus, Trash2, Activity, X, Zap } from 'lucide-react';
 import { useDailyLog } from '../context/DailyLogContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { DetailedNutrients } from '../types';
 import { NutrientBar, MicroNutrientGrid } from '../components/NutrientVisualizations';
-
-const historyData = [
-  { name: '周一', cal: 1800 },
-  { name: '周二', cal: 2100 },
-  { name: '周三', cal: 1950 },
-  { name: '周四', cal: 2300 },
-  { name: '周五', cal: 1700 },
-  { name: '周六', cal: 2400 },
-  { name: '周日', cal: 2000 },
-];
 
 const Dashboard: React.FC = () => {
   const { summary, logs, removeLog } = useDailyLog();
@@ -100,23 +90,25 @@ const Dashboard: React.FC = () => {
         // Sum Vitamins
         Object.entries(d.vitamins).forEach(([key, data]) => {
            if (!agg.vitamins[key]) agg.vitamins[key] = { value: '0', nrvPercent: 0 };
+           const vData = data as { value: string; nrvPercent: number };
            const current = parseValue(agg.vitamins[key].value);
-           const income = parseValue(data.value);
+           const income = parseValue(vData.value);
            const sumVal = (current.val + income.val).toFixed(1).replace(/\.0$/, ''); 
            const unit = income.unit || current.unit;
            agg.vitamins[key].value = `${sumVal}${unit}`;
-           agg.vitamins[key].nrvPercent += data.nrvPercent || 0;
+           agg.vitamins[key].nrvPercent += vData.nrvPercent || 0;
         });
 
         // Sum Minerals
         Object.entries(d.minerals).forEach(([key, data]) => {
            if (!agg.minerals[key]) agg.minerals[key] = { value: '0', nrvPercent: 0 };
+           const mData = data as { value: string; nrvPercent: number };
            const current = parseValue(agg.minerals[key].value);
-           const income = parseValue(data.value);
+           const income = parseValue(mData.value);
            const sumVal = (current.val + income.val).toFixed(1).replace(/\.0$/, '');
            const unit = income.unit || current.unit;
            agg.minerals[key].value = `${sumVal}${unit}`;
-           agg.minerals[key].nrvPercent += data.nrvPercent || 0;
+           agg.minerals[key].nrvPercent += mData.nrvPercent || 0;
         });
       }
     });
@@ -379,40 +371,6 @@ const Dashboard: React.FC = () => {
            </div>
         </div>
       )}
-
-      {/* Weekly Trend (Simplified for Aesthetics) */}
-      <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-50">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold text-slate-800">热量趋势</h3>
-          <div className="flex items-center gap-1 text-xs text-slate-400 cursor-pointer">
-             查看更多 <ChevronRight size={12} />
-          </div>
-        </div>
-        <div className="h-32 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={historyData}>
-              <defs>
-                <linearGradient id="colorCal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.15}/>
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', fontSize: '12px' }}
-                cursor={{ stroke: '#10B981', strokeWidth: 1, strokeDasharray: '4 4' }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="cal" 
-                stroke="#10B981" 
-                strokeWidth={2} 
-                fillOpacity={1} 
-                fill="url(#colorCal)" 
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
     </div>
   );
 };
