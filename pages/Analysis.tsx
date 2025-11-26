@@ -4,7 +4,6 @@ import { Camera, AlertCircle, Loader2, Sparkles, Edit2, Check, Trash2, Plus, Arr
 import { identifyFoodFromImage, analyzeNutritionFromIngredients } from '../services/geminiService';
 import { AnalysisStatus, FoodAnalysisResult, Ingredient } from '../types';
 import { useDailyLog } from '../context/DailyLogContext';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { NutrientBar, MicroNutrientGrid } from '../components/NutrientVisualizations';
 
@@ -12,7 +11,6 @@ const Analysis: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
   const [status, setStatus] = useState<AnalysisStatus>(AnalysisStatus.IDLE);
   const { addLog } = useDailyLog();
-  const { saveToFoodLibrary } = useAuth(); // Import auth context actions
   const navigate = useNavigate();
   
   // State for Review Step
@@ -66,11 +64,9 @@ const Analysis: React.FC = () => {
     }
   };
 
-  // Step 3: Add to Daily Log AND Save to User Library
+  // Step 3: Add to Daily Log
   const handleAddToLog = () => {
     if (!result) return;
-    
-    // 1. Add to today's log (Dashboard)
     addLog({
       name: result.foodName,
       imageUrl: image || undefined,
@@ -79,20 +75,8 @@ const Analysis: React.FC = () => {
       carbs: result.detailedNutrients.carbs.total.value,
       fat: result.detailedNutrients.fat.total.value,
       sourceType: 'AI_ANALYSIS',
-      detailedNutrients: result.detailedNutrients
+      detailedNutrients: result.detailedNutrients // Pass detailed nutrients
     });
-
-    // 2. Save to User's Personal Library (Profile -> Food Log)
-    saveToFoodLibrary({
-      name: result.foodName,
-      imageUrl: image || undefined,
-      calories: result.detailedNutrients.calories.value,
-      protein: result.detailedNutrients.protein.value,
-      carbs: result.detailedNutrients.carbs.total.value,
-      fat: result.detailedNutrients.fat.total.value,
-      detailedNutrients: result.detailedNutrients
-    });
-
     // Navigate back to dashboard to see results
     navigate('/');
   };

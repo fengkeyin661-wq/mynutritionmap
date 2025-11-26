@@ -176,16 +176,3 @@ export interface DailySummary {
   totalCarbs: number;
   totalFat: number;
 }
-
-// --- 新增：用户DIY食物库 ---
-export interface UserFoodItem {
-  id: string;
-  name: string;
-  imageUrl?: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  detailedNutrients: DetailedNutrients;
-  timestamp: number;
-}
