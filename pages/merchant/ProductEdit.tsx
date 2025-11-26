@@ -1,24 +1,22 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatform } from '../../context/PlatformContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ProductDetail, DetailedNutrients, Ingredient } from '../../types';
 import { analyzeNutritionFromIngredients } from '../../services/geminiService';
-import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles, Image as ImageIcon, Camera } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles } from 'lucide-react';
 
 const ProductEdit: React.FC = () => {
   const navigate = useNavigate();
   const { addProduct } = usePlatform();
   const { currentMerchantId, merchantName } = useAuth();
   const { showToast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Form State
-  const [image, setImage] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -26,17 +24,6 @@ const ProductEdit: React.FC = () => {
   const [ingredients, setIngredients] = useState<Ingredient[]>([
     { name: '', amount: '' }
   ]);
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleAddIngredient = () => {
     setIngredients([...ingredients, { name: '', amount: '' }]);
@@ -81,7 +68,7 @@ const ProductEdit: React.FC = () => {
         name,
         price: Number(price),
         description: description || analysisResult.advice, // 如果没填简介，用AI建议代替
-        imageUrl: image || `https://picsum.photos/300/300?random=${Date.now()}`, 
+        imageUrl: `https://picsum.photos/300/300?random=${Date.now()}`, // 模拟上传图片
         ingredients: ingredients.filter(i => i.name && i.amount),
         
         // AI Generated Data
@@ -114,31 +101,6 @@ const ProductEdit: React.FC = () => {
       </div>
       
       <div className="p-6 max-w-2xl mx-auto space-y-6">
-        {/* Image Upload */}
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className={`aspect-video w-full rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group transition-colors ${!image ? 'hover:border-emerald-400 hover:bg-emerald-50' : ''}`}
-        >
-          {image ? (
-            <>
-              <img src={image} alt="Product Cover" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-full font-bold flex items-center gap-2">
-                   <Camera size={18} /> 更换图片
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-2">
-                <ImageIcon size={24} />
-              </div>
-              <p className="text-slate-500 text-xs font-bold">点击上传商品图</p>
-            </>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-        </div>
-
         {/* Basic Info */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
           <h2 className="font-bold text-slate-800 flex items-center gap-2">基本信息</h2>
