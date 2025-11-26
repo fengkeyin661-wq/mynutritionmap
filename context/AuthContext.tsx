@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { UserRole, UserProfile, Gender, ActivityLevel } from '../types';
+import { UserRole, UserProfile, Gender, ActivityLevel, UserFoodItem } from '../types';
 import { useToast } from './ToastContext';
 
 interface AuthContextType {
@@ -21,6 +21,11 @@ interface AuthContextType {
   toggleFavoriteProduct: (id: string) => void;
   isFavoriteRecipe: (id: string) => boolean;
   isFavoriteProduct: (id: string) => boolean;
+
+  // DIY Food Library
+  userFoodLibrary: UserFoodItem[];
+  saveToFoodLibrary: (item: Omit<UserFoodItem, 'id' | 'timestamp'>) => void;
+  deleteFromFoodLibrary: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,6 +80,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 收藏夹 (存储ID)
   const [favoriteRecipes, setFavoriteRecipes] = useState<string[]>([]);
   const [favoriteProducts, setFavoriteProducts] = useState<string[]>([]);
+
+  // 用户 DIY 食物库
+  const [userFoodLibrary, setUserFoodLibrary] = useState<UserFoodItem[]>([
+    // Mock Data
+    {
+      id: 'mock_1',
+      name: '自制蔬菜沙拉',
+      imageUrl: 'https://picsum.photos/200/200?random=101',
+      calories: 180,
+      protein: 5,
+      carbs: 12,
+      fat: 8,
+      timestamp: Date.now() - 86400000,
+      detailedNutrients: { calories: {value:180, nrvPercent:9}, protein: {value:5, nrvPercent:8}, carbs: {total:{value:12, nrvPercent:4}, available:{value:8}, fiber:{value:4}}, fat: {total:{value:8, nrvPercent:13}, saturated:{value:1}, monounsaturated:{value:4}, polyunsaturated:{value:3}}, vitamins:{}, minerals:{} }
+    },
+    {
+      id: 'mock_2',
+      name: '早餐燕麦杯',
+      imageUrl: 'https://picsum.photos/200/200?random=102',
+      calories: 320,
+      protein: 12,
+      carbs: 45,
+      fat: 6,
+      timestamp: Date.now() - 172800000,
+      detailedNutrients: { calories: {value:320, nrvPercent:16}, protein: {value:12, nrvPercent:20}, carbs: {total:{value:45, nrvPercent:15}, available:{value:40}, fiber:{value:5}}, fat: {total:{value:6, nrvPercent:10}, saturated:{value:1}, monounsaturated:{value:3}, polyunsaturated:{value:2}}, vitamins:{}, minerals:{} }
+    }
+  ]);
 
   const loginAs = (newRole: UserRole, merchantId?: string, mName?: string) => {
     setRole(newRole);
@@ -135,6 +167,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isFavoriteRecipe = (id: string) => favoriteRecipes.includes(id);
   const isFavoriteProduct = (id: string) => favoriteProducts.includes(id);
 
+  // DIY Food Library Logic
+  const saveToFoodLibrary = (item: Omit<UserFoodItem, 'id' | 'timestamp'>) => {
+    const newItem: UserFoodItem = {
+      ...item,
+      id: 'diy_' + Date.now(),
+      timestamp: Date.now()
+    };
+    setUserFoodLibrary(prev => [newItem, ...prev]);
+  };
+
+  const deleteFromFoodLibrary = (id: string) => {
+    setUserFoodLibrary(prev => prev.filter(item => item.id !== id));
+    showToast('已从记录中移除', 'info');
+  };
+
   return (
     <AuthContext.Provider value={{ 
       role, 
@@ -149,7 +196,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       toggleFavoriteRecipe,
       toggleFavoriteProduct,
       isFavoriteRecipe,
-      isFavoriteProduct
+      isFavoriteProduct,
+      userFoodLibrary,
+      saveToFoodLibrary,
+      deleteFromFoodLibrary
     }}>
       {children}
     </AuthContext.Provider>

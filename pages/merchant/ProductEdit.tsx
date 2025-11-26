@@ -1,12 +1,12 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatform } from '../../context/PlatformContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { ProductDetail, DetailedNutrients, Ingredient } from '../../types';
 import { analyzeNutritionFromIngredients } from '../../services/geminiService';
-import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles, Camera, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Loader2, ChefHat, Sparkles } from 'lucide-react';
 
 const ProductEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -15,10 +15,8 @@ const ProductEdit: React.FC = () => {
   const { showToast } = useToast();
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
-  const [image, setImage] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -42,23 +40,10 @@ const ProductEdit: React.FC = () => {
     setIngredients(newIngredients);
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setImage(base64String);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!currentMerchantId) return;
     if (!name.trim()) { showToast('请输入商品名称', 'error'); return; }
     if (!price.trim()) { showToast('请输入价格', 'error'); return; }
-    if (!image) { showToast('请上传商品图片', 'error'); return; }
     if (ingredients.some(i => !i.name)) { showToast('请完善配料表', 'error'); return; }
 
     setIsAnalyzing(true);
@@ -83,7 +68,7 @@ const ProductEdit: React.FC = () => {
         name,
         price: Number(price),
         description: description || analysisResult.advice, // 如果没填简介，用AI建议代替
-        imageUrl: image, // 使用上传的图片
+        imageUrl: `https://picsum.photos/300/300?random=${Date.now()}`, // 模拟上传图片
         ingredients: ingredients.filter(i => i.name && i.amount),
         
         // AI Generated Data
@@ -116,32 +101,6 @@ const ProductEdit: React.FC = () => {
       </div>
       
       <div className="p-6 max-w-2xl mx-auto space-y-6">
-        {/* Image Upload */}
-        <div 
-          onClick={() => fileInputRef.current?.click()}
-          className={`aspect-square sm:aspect-video w-full rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer overflow-hidden relative group transition-colors ${!image ? 'hover:border-emerald-400 hover:bg-emerald-50' : ''}`}
-        >
-          {image ? (
-            <>
-              <img src={image} alt="Cover" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-white/20 backdrop-blur text-white px-4 py-2 rounded-full font-bold flex items-center gap-2">
-                   <Camera size={18} /> 更换图片
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-3">
-                <ImageIcon size={32} />
-              </div>
-              <p className="text-slate-500 font-medium">点击上传商品图</p>
-              <p className="text-slate-400 text-xs mt-1">支持 jpg, png 格式</p>
-            </>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-        </div>
-
         {/* Basic Info */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
           <h2 className="font-bold text-slate-800 flex items-center gap-2">基本信息</h2>
